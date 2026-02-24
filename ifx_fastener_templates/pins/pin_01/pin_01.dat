@@ -1,0 +1,13 @@
+!--------------------------------------------------------
+!	Zylinderstift
+!	Dowel pin
+!--------------------------------------------------------
+
+PINTYPE	1
+UNIT	MM
+SURFACE	64
+AXIS	93
+INFO	<YOUR PIN NAME>
+
+SYMBOL  	DN	L
+INSTANCE	DN	L

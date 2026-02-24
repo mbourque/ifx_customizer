@@ -1,0 +1,14 @@
+!--------------------------------------------------------
+!	Ringschraube
+!	Lifting eye screw
+!--------------------------------------------------------
+
+SCREWTYPE	81
+UNIT	MM
+SURFACE	1153
+AXIS	1071
+ORIENT	1400
+INFO	<YOUR SCREW81>
+
+SYMBOL  	STRING	DN	LG	K	DG	P	DN1	DN2
+INSTANCE	STRING	DN	LG	K	DG	P	DN1	DN2

@@ -1,0 +1,14 @@
+!--------------------------------------------------------
+!	Sechskantschraube mit Gewinde bis zum Kopf
+!	Hexagon head screw, fully threaded
+!--------------------------------------------------------
+
+SCREWTYPE	21
+UNIT	MM
+SURFACE	126
+AXIS	85
+CBSCR	DIN974-2 R1
+INFO	<YOUR SCREW21>
+
+SYMBOL  	STRING	DN	LG	S	K	DG	P
+INSTANCE	STRING	DN	LG	S	K	DG	P

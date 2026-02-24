@@ -1,0 +1,14 @@
+!--------------------------------------------------------
+!	Sechskantschraube mit Schaft
+!	Hexagon head screw with shank
+!--------------------------------------------------------
+
+SCREWTYPE	20
+UNIT	MM
+SURFACE	126
+AXIS	85
+CBSCR	DIN974-2 R1
+INFO	<YOUR SCREW20>
+
+SYMBOL  	STRING	DN	LG	B	S	K	DG	P
+INSTANCE	STRING	DN	LG	B	S	K	DG	P

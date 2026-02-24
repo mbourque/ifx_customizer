@@ -1,0 +1,15 @@
+!--------------------------------------------------------
+!	Scheibe mit Aussenfase
+!	Plain washer (with chamfer)
+!--------------------------------------------------------
+
+WASHERTYPE	2
+UNIT	MM
+SURFACE	16
+AXIS	21
+CBSCR	DIN974-1 R5
+CBNUT	DIN974-2 R1
+INFO	<YOUR WASHER2>
+
+SYMBOL  	DN	H	DN1	DN2
+INSTANCE	DN	H	DN1	DN2

@@ -1,0 +1,15 @@
+!--------------------------------------------------------
+!	Federringe
+!	Spring lock washer
+!--------------------------------------------------------
+
+WASHERTYPE	20
+UNIT	MM
+SURFACE	16
+AXIS	21
+CBSCR	DIN974-1 R5
+CBNUT	DIN974-2 R1
+INFO	<YOUR WASHER1>
+
+SYMBOL  	DN	H	DN1	DN2
+INSTANCE	DN	H	DN1	DN2

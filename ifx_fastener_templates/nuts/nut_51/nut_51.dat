@@ -1,0 +1,14 @@
+!--------------------------------------------------------
+!	Sechskantmutter mit Flansch
+!	Hexagon nut with flange
+!--------------------------------------------------------
+
+NUTTYPE	51
+UNIT	MM
+SURFACE	2
+AXIS	92
+CBNUT	DIN974-2 R1
+INFO	<YOUR NAME>
+
+SYMBOL  	DN	S	K	DG	P	DN1
+INSTANCE	DN	S	K	DG	P	DN1

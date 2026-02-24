@@ -1,0 +1,14 @@
+!--------------------------------------------------------
+!	Zylinderschraube mit Schlitz
+!	Slotted cheese head screw
+!--------------------------------------------------------
+
+SCREWTYPE	3
+UNIT	MM
+SURFACE	28
+AXIS	71
+CBSCR	DIN974-1 R1
+INFO	<YOUR SCREW3>
+
+SYMBOL  	STRING	DN	LG	B	S	DK	K	DG	P	L1
+INSTANCE	STRING	DN	LG	B	S	DK	K	DG	P	L1

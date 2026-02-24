@@ -1,0 +1,13 @@
+!--------------------------------------------------------
+!	Zylinderstift mit Innengewinde
+!	Dowel pin with internal thread
+!--------------------------------------------------------
+
+PINTYPE	2
+UNIT	MM
+SURFACE	64
+AXIS	93
+INFO	<YOUR PIN2 NAME>
+
+SYMBOL  	DN	L	DN1	L1	DN2	L2
+INSTANCE	DN	L	DN1	L1	DN2	L2

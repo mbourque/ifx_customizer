@@ -1,0 +1,14 @@
+!--------------------------------------------------------
+!	Benutzerdefinierte Schraube
+!	User defined screw
+!--------------------------------------------------------
+
+SCREWTYPE	99
+UNIT	MM
+SURFACE	??
+AXIS	??
+CBSCR	DIN974-1 R1
+INFO	<YOUR SCREW99>
+
+SYMBOL  	STRING	DN	LG	B	DK	K	DG	P	...
+INSTANCE	STRING	DN	LG	B	DK	K	DG	P	...

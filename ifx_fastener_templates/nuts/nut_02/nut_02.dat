@@ -1,0 +1,14 @@
+!--------------------------------------------------------
+!	Sechskantmutter niedrige Form
+!	Hexagon nut, low head
+!--------------------------------------------------------
+
+NUTTYPE	2
+UNIT	MM
+SURFACE	9
+AXIS	92
+CBNUT	DIN974-2 R1
+INFO	<YOUR NAME>
+
+SYMBOL  	DN	S	K	DG	P
+INSTANCE	DN	S	K	DG	P

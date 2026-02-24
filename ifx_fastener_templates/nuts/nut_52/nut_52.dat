@@ -1,0 +1,14 @@
+!--------------------------------------------------------
+!	Sechskant-Hutmutter
+!	Hexagon domed cap nut
+!--------------------------------------------------------
+
+NUTTYPE	52
+UNIT	MM
+SURFACE	2
+AXIS	92
+CBNUT	DIN974-2 R1
+INFO	<YOUR NAME>
+
+SYMBOL  	DN	S	K	DG	P	DN1	L1	L2
+INSTANCE	DN	S	K	DG	P	DN1	L1	L2

@@ -1,0 +1,14 @@
+!--------------------------------------------------------
+!	Linsenkopf Schraube
+!	Button head screw
+!--------------------------------------------------------
+
+SCREWTYPE	82
+UNIT	MM
+SURFACE	28
+AXIS	71
+CBSCR	DIN974-1 R1
+INFO	<YOUR SCEW82>
+
+SYMBOL  	STRING	DN	LG	B	S	DK	K	DG	P	L1
+INSTANCE	STRING	DN	LG	B	S	DK	K	DG	P	L1

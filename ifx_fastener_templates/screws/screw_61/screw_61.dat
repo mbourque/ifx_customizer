@@ -1,0 +1,13 @@
+!--------------------------------------------------------
+!	Senkschraube mit Schlitz
+!	Slotted countersunk flat head screw
+!--------------------------------------------------------
+
+SCREWTYPE	61
+UNIT	MM
+SURFACE	18
+AXIS	63
+INFO	<YOUR SCREW61>
+
+SYMBOL  	STRING	DN	LG	B	S	DK	K	DG	P	L1
+INSTANCE	STRING	DN	LG	B	S	DK	K	DG	P	L1

@@ -1,0 +1,14 @@
+!-------------------------------------------------------------------
+!	Keilscheiben
+!	Square taper washers
+!-------------------------------------------------------------------
+
+WASHERTYPE	40
+UNIT	MM
+SURFACE	128
+AXIS	118
+ORIENT	95
+INFO	<YOUR WASHER40>
+
+SYMBOL  	DN	H	DN1	DN2	B	W1	R
+INSTANCE	DN	H	DN1	DN2	B	W1	R

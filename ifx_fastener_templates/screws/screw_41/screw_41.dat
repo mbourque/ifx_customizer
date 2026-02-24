@@ -1,0 +1,14 @@
+!----------------------------------------------------------
+!	Sechskantschraube, Gewinde bis Kopf, Feingewinde
+!	Hexagon head screw, fully threaded and fine pitch
+!----------------------------------------------------------
+
+SCREWTYPE	41
+UNIT	MM
+SURFACE	126
+AXIS	85
+CBSCR	DIN974-2 R1
+INFO	<YOUR SCREW41>
+
+SYMBOL	STRING	DN	LG	S	K	DG	P
+SYMBOL	STRING	DN	LG	S	K	DG	P

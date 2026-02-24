@@ -1,0 +1,14 @@
+!-----------------------------------------------------------
+!	Zylinderschraube mit Innensechskant, niedriger Kopf
+!	Hexagon socket head cap screw, low head
+!-----------------------------------------------------------
+
+SCREWTYPE	2
+UNIT	MM
+SURFACE	28
+AXIS	71
+CBSCR	DIN974-1 R1
+INFO	<YOUR SCREW2>
+
+SYMBOL  	STRING	DN	LG	B	S	DK	K	DG	P
+INSTANCE	STRING	DN	LG	B	S	DK	K	DG	P

@@ -1,0 +1,13 @@
+!--------------------------------------------------------
+!	Selbst definierte Mutter
+!	User defined Nut
+!--------------------------------------------------------
+NUTTYPE	99
+UNIT	MM
+SURFACE ??
+AXIS	??
+CBNUT	??
+INFO	??
+
+SYMBOL  	DN	E	K	P
+INSTANCE	DN	E	K	P

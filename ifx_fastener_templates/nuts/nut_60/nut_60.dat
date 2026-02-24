@@ -1,0 +1,14 @@
+!--------------------------------------------------------------------
+!	Sechskantmutter mit Klemteil und Feingewinde
+!	Prevailing torque type hexagon nut and fine pitch thread
+!--------------------------------------------------------------------
+
+NUTTYPE	60
+UNIT	MM
+SURFACE	2
+AXIS	92
+CBNUT	DIN974-2 R1
+INFO	<YOUR NAME>
+
+SYMBOL  	DN	S	K	DG	P	L1
+INSTANCE	DN	S	K	DG	P	L1
