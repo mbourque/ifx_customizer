@@ -2,6 +2,7 @@
 IFX Catalog Manager - CustomTkinter application for managing IFX fastener catalogs.
 """
 
+import re
 import shutil
 import customtkinter as ctk
 from pathlib import Path
@@ -13,6 +14,28 @@ DEFAULT_SECTIONS = ["#screws", "#washers", "#nuts", "#inserts", "#pins"]
 
 # Catalog index filename (try both variants)
 CATALOG_INDEX_FILES = ["ifx_catalog.txt", "ifx_catalogs.txt"]
+
+# INSTANCE row types that indicate text (not numeric)
+TEXT_TYPES = {"STRING", "name", "type", "size"}
+# Variable names that are always text, regardless of INSTANCE row
+TEXT_VAR_NAMES = {"SYMBOL", "STRING", "BUW_NAME", "BUW_TYPE", "BUW_SIZE"}
+
+
+def validate_numeric_value(var_name: str, raw: str, numeric_vars: set[str]) -> tuple[str, str | None]:
+    """
+    Validate a numeric field. Does not correct - user must use . for decimals.
+    numeric_vars: set of variable names that expect numeric values (from .dat INSTANCE row).
+    Returns (value, error_message). error_message is None if valid.
+    """
+    if var_name not in numeric_vars:
+        return raw, None
+    if not raw.strip():
+        return raw, None  # Empty is allowed
+    try:
+        float(raw.strip())
+        return raw, None
+    except ValueError:
+        return raw, f"'{var_name}' must be a valid number"
 
 
 def get_sections_from_catalog(catalog_path: Path) -> list[str]:
@@ -77,6 +100,51 @@ def get_template_folder_for_section(section: str) -> str | None:
     return None
 
 
+def parse_dat_variables(dat_path: Path) -> tuple[list[str], str, set[str]]:
+    """
+    Parse .dat file to extract variable names from SYMBOL row, UNIT, and which are numeric from INSTANCE row.
+    Returns (list of variable names, current unit "MM" or "INCH", set of numeric variable names).
+    """
+    variables = []
+    unit = "MM"
+    numeric_vars = set()
+    if not dat_path.exists():
+        return variables, unit, numeric_vars
+    lines = []
+    with open(dat_path, "r", encoding="utf-8-sig", errors="ignore") as f:
+        lines = f.readlines()
+    for i, line in enumerate(lines):
+        stripped = line.strip()
+        if stripped.upper().startswith("UNIT\t") or stripped.upper().startswith("UNIT "):
+            parts = stripped.split(None, 1)
+            if len(parts) >= 2:
+                unit = parts[1].strip().upper()
+                if unit not in ("MM", "INCH"):
+                    unit = "MM"
+        elif stripped.upper().startswith("SYMBOL"):
+            variables = [v.strip() for v in line.split("\t") if v.strip()]
+            # Next line is INSTANCE with types - use to determine numeric vars dynamically
+            if i + 1 < len(lines):
+                instance_parts = [p.strip() for p in lines[i + 1].split("\t") if p.strip()]
+                if instance_parts and instance_parts[0].upper() == "INSTANCE":
+                    for j, var in enumerate(variables):
+                        if var in TEXT_VAR_NAMES:
+                            continue  # SYMBOL, STRING, BUW_* are always text
+                        if j + 1 < len(instance_parts):
+                            inst_type = instance_parts[j + 1].lower()
+                            # STRING, name, type, size = text; DN, LG, K, etc. = numeric
+                            if inst_type not in {t.lower() for t in TEXT_TYPES}:
+                                numeric_vars.add(var)
+            break
+    return variables, unit, numeric_vars
+
+
+def get_detail_gif_path(template_dir: Path, base_name: str) -> Path | None:
+    """Return path to {base}_detail.gif in template dir if it exists."""
+    p = template_dir / f"{base_name}_detail.gif"
+    return p if p.exists() else None
+
+
 def list_templates_with_gifs(templates_dir: Path, type_folder: str) -> list[tuple[str, Path, Path | None]]:
     """
     Walk through type_folder (screws, washers, etc.) and all subfolders to find templates.
@@ -126,47 +194,47 @@ class IFXCatalogManager(ctk.CTk):
         self._load_catalog_index()
 
     def _build_ui(self):
-        # Folder selection frame
-        folder_frame = ctk.CTkFrame(self, fg_color="transparent")
-        folder_frame.pack(fill="x", padx=20, pady=(20, 10))
+        # Folder selection frame (hidden when on dat editor)
+        self.folder_frame = ctk.CTkFrame(self, fg_color="transparent")
+        self.folder_frame.pack(fill="x", padx=20, pady=(10, 4))
 
-        ctk.CTkLabel(folder_frame, text="IFX Data Folder:", width=120).pack(
+        ctk.CTkLabel(self.folder_frame, text="IFX Data Folder:", width=120).pack(
             side="left", padx=(0, 10)
         )
         self.folder_var = ctk.StringVar(value=str(self.base_folder))
         self.folder_entry = ctk.CTkEntry(
-            folder_frame, textvariable=self.folder_var, width=400
+            self.folder_frame, textvariable=self.folder_var, width=400
         )
         self.folder_entry.pack(side="left", fill="x", expand=True, padx=(0, 10))
         ctk.CTkButton(
-            folder_frame, text="Browse", width=80, command=self._browse_folder
+            self.folder_frame, text="Browse", width=80, command=self._browse_folder
         ).pack(side="left")
 
-        # Catalog list frame
-        list_frame = ctk.CTkFrame(self, fg_color="transparent")
-        list_frame.pack(fill="x", padx=20, pady=10)
+        # Catalog list frame (hidden when on dat editor)
+        self.list_frame = ctk.CTkFrame(self, fg_color="transparent")
+        self.list_frame.pack(fill="x", padx=20, pady=4)
 
-        ctk.CTkLabel(list_frame, text="Catalog (ifx_catalog.txt):").pack(anchor="w")
+        ctk.CTkLabel(self.list_frame, text="Catalog (ifx_catalog.txt):").pack(anchor="w")
         self.combo_var = ctk.StringVar()
         self.catalog_combo = ctk.CTkComboBox(
-            list_frame,
+            self.list_frame,
             values=[],
             variable=self.combo_var,
             width=400,
             state="readonly",
             command=self._on_selection_changed,
         )
-        self.catalog_combo.pack(fill="x", pady=(5, 10))
+        self.catalog_combo.pack(fill="x", pady=(2, 4))
 
         # Selection info
         self.selection_info = ctk.CTkLabel(
-            list_frame, text="", text_color="gray", anchor="w"
+            self.list_frame, text="", text_color="gray", anchor="w"
         )
         self.selection_info.pack(fill="x")
 
         # Action area - varies by selection type
         self.action_frame = ctk.CTkFrame(self, fg_color="transparent")
-        self.action_frame.pack(fill="both", expand=True, padx=20, pady=20)
+        self.action_frame.pack(fill="both", expand=True, padx=20, pady=8)
 
     def _find_catalog_index(self) -> Path | None:
         """Find the catalog index file in catalogs directory."""
@@ -222,6 +290,10 @@ class IFXCatalogManager(ctk.CTk):
     def _on_selection_changed(self, _):
         sel = self.combo_var.get()
         self._clear_action_frame()
+        # Show folder/catalog UI when on main screens
+        self.folder_frame.pack(fill="x", padx=20, pady=(10, 4), before=self.action_frame)
+        self.list_frame.pack(fill="x", padx=20, pady=4, before=self.action_frame)
+        self.geometry("700x550")
         if not sel or sel.startswith("("):
             return
 
@@ -238,6 +310,7 @@ class IFXCatalogManager(ctk.CTk):
     def _clear_action_frame(self):
         for w in self.action_frame.winfo_children():
             w.destroy()
+        self.geometry("700x550")
 
     def _build_add_catalog_ui(self, section: str):
         """Build UI for adding a new catalog when a section heading is selected."""
@@ -381,8 +454,104 @@ class IFXCatalogManager(ctk.CTk):
         ctk.CTkButton(
             self.action_frame,
             text="Create from template",
-            command=self._create_from_template,
+            command=self._show_dat_editor,
         ).pack(anchor="w", pady=(0, 10))
+
+    def _show_dat_editor(self):
+        """Show the .dat variable editor before creating the fastener."""
+        if not hasattr(self, "pending_fastener") or not hasattr(self, "selected_template_path"):
+            return
+        pf = self.pending_fastener
+        template_path = self.selected_template_path
+        if not template_path.exists():
+            messagebox.showerror("Error", "Template not found.")
+            return
+
+        template_base = template_path.name
+        dat_path = template_path / f"{template_base}.dat"
+        variables, unit, numeric_vars = parse_dat_variables(dat_path)
+        if not variables:
+            messagebox.showwarning("No variables", f"Could not parse variables from {dat_path.name}. Proceeding without form.")
+            self._create_from_template()
+            return
+
+        self._dat_editor_vars = variables
+        self._dat_numeric_vars = numeric_vars
+        detail_gif = get_detail_gif_path(template_path, template_base)
+
+        self._clear_action_frame()
+
+        # Hide folder/catalog, expand window for values form only
+        self.folder_frame.pack_forget()
+        self.list_frame.pack_forget()
+        self.geometry("700x720")
+
+        # Form content - no scroll, window tall enough to fit all
+        inner = ctk.CTkFrame(self.action_frame, fg_color="transparent")
+        inner.pack(fill="both", expand=True)
+
+        ctk.CTkLabel(
+            inner,
+            text=f"Enter values for '{pf['item_name']}'",
+            font=ctk.CTkFont(weight="bold"),
+        ).pack(anchor="w", pady=(0, 2))
+
+        # Detail GIF at top - natural size to avoid clipping
+        if detail_gif and detail_gif.exists():
+            try:
+                pil_img = Image.open(str(detail_gif)).convert("RGBA")
+                w, h = pil_img.size
+                ctk_img = ctk.CTkImage(light_image=pil_img, size=(w, h))
+                self._detail_image_ref = (pil_img, ctk_img)
+                ctk.CTkLabel(inner, text="", image=ctk_img).pack(anchor="w", pady=(0, 4))
+            except Exception:
+                self._detail_image_ref = None
+        else:
+            self._detail_image_ref = None
+
+        # Units only - on its own row
+        top_row = ctk.CTkFrame(inner, fg_color="transparent")
+        top_row.pack(fill="x", pady=(0, 2))
+        ctk.CTkLabel(top_row, text="Units:").pack(side="left", padx=(0, 6))
+        self._unit_var = ctk.StringVar(value=unit)
+        ctk.CTkComboBox(
+            top_row, values=["MM", "INCH"], variable=self._unit_var, width=80, state="readonly"
+        ).pack(side="left")
+
+        # Form: INFO is hidden (auto-set to fastener name), other vars visible
+        form_frame = ctk.CTkFrame(inner, fg_color="transparent")
+        form_frame.pack(fill="x", pady=(0, 2))
+
+        self._dat_entries = {}
+
+        form_vars = [v for v in variables if v != "INFO"]
+        left_vars = [v for v in form_vars if v not in ("BUW_NAME", "BUW_TYPE", "BUW_SIZE")]
+        right_vars = [v for v in form_vars if v in ("BUW_NAME", "BUW_TYPE", "BUW_SIZE")]
+        num_rows = max(len(left_vars), len(right_vars), 1)
+
+        for i in range(num_rows):
+            if i < len(left_vars):
+                v = left_vars[i]
+                ctk.CTkLabel(form_frame, text=f"{v}:").grid(
+                    row=i, column=0, sticky="w", padx=(0, 6), pady=1
+                )
+                entry = ctk.CTkEntry(form_frame, width=160)
+                entry.grid(row=i, column=1, sticky="w", padx=(0, 20), pady=1)
+                self._dat_entries[v] = entry
+            if i < len(right_vars):
+                v = right_vars[i]
+                ctk.CTkLabel(form_frame, text=f"{v}:").grid(
+                    row=i, column=2, sticky="w", padx=(0, 6), pady=1
+                )
+                entry = ctk.CTkEntry(form_frame, width=160)
+                entry.grid(row=i, column=3, sticky="w", pady=1)
+                self._dat_entries[v] = entry
+
+        ctk.CTkButton(
+            inner,
+            text="Create",
+            command=self._create_from_template,
+        ).pack(anchor="e", pady=(4, 0))
 
     def _on_template_thumb_click(self, template_path: Path):
         """Update selection when user clicks a template thumbnail."""
@@ -418,13 +587,73 @@ class IFXCatalogManager(ctk.CTk):
         dest.mkdir(parents=True, exist_ok=True)
 
         copied = []
+        dat_content_to_write = None
+
+        # If we have dat editor entries, build dat content with user values
+        if hasattr(self, "_dat_entries") and hasattr(self, "_dat_editor_vars"):
+            variables = self._dat_editor_vars
+            values = []
+            for var in variables:
+                if var == "INFO":
+                    raw = pf["item_name"]
+                else:
+                    entry = self._dat_entries.get(var)
+                    raw = entry.get().strip() if entry else ""
+                _, err = validate_numeric_value(var, raw, getattr(self, "_dat_numeric_vars", set()))
+                if err:
+                    messagebox.showwarning("Invalid value", err)
+                    return
+                values.append(raw)
+
+            info_str = pf["item_name"]
+            symbol_entry = self._dat_entries.get("SYMBOL")
+            symbol_str = symbol_entry.get().strip() if symbol_entry else ""
+            if info_str and symbol_str and info_str.lower() == symbol_str.lower():
+                messagebox.showwarning("Invalid value", f"SYMBOL cannot be same name as Item Name ({info_str})")
+                return
+
+            src_dat = template_path / f"{template_base}.dat"
+            if src_dat.exists():
+                content = src_dat.read_text(encoding="utf-8", errors="ignore")
+                content = content.replace(template_base, item_name)
+
+                # Update or add UNIT line
+                unit_val = getattr(self, "_unit_var", ctk.StringVar(value="MM")).get()
+                before_unit = content
+                content = re.sub(r"(?m)^UNIT\s+\S+", f"UNIT\t{unit_val}", content)
+                if content == before_unit and "UNIT" not in content:
+                    # No UNIT line exists, add after first TYPE line
+                    content = re.sub(
+                        r"(?m)^(SCREWTYPE|WASHERTYPE|NUTTYPE|INSERTTYPE|PINTYPE)\s+\S+",
+                        lambda m: m.group(0) + f"\nUNIT\t{unit_val}",
+                        content,
+                        count=1,
+                    )
+
+                # Update INFO line (always fastener name)
+                content = re.sub(r"(?m)^INFO\s+.*", f"INFO\t{pf['item_name']}", content)
+
+                # Append new data row at end (tab-separated, in variable order)
+                new_row = "\t".join(values)
+                content = content.rstrip()
+                if content and not content.endswith("\n"):
+                    content += "\n"
+                content += new_row + "\n"
+                dat_content_to_write = content
+
+        unit_val = getattr(self._unit_var, "get", lambda: "MM")() if hasattr(self, "_unit_var") else "MM"
+        prt_src = template_path / f"{template_base}_inch.prt" if unit_val == "INCH" else template_path / f"{template_base}.prt"
+        if unit_val == "INCH" and not prt_src.exists():
+            prt_src = template_path / f"{template_base}.prt"  # Fallback if _inch not found
+
         for ext in [".prt", ".dat"]:
-            src = template_path / f"{template_base}{ext}"
+            src = prt_src if ext == ".prt" else template_path / f"{template_base}{ext}"
             if src.exists():
                 dst = dest / f"{item_name}{ext}"
                 try:
-                    if ext == ".dat":
-                        # Substitute template name with item_name in content
+                    if ext == ".dat" and dat_content_to_write is not None:
+                        dst.write_text(dat_content_to_write, encoding="utf-8")
+                    elif ext == ".dat":
                         content = src.read_text(encoding="utf-8", errors="ignore")
                         content = content.replace(template_base, item_name)
                         dst.write_text(content, encoding="utf-8")
@@ -448,11 +677,17 @@ class IFXCatalogManager(ctk.CTk):
             msg += f"\n\nCreated: {', '.join(copied)}"
         messagebox.showinfo("Success", msg)
 
-        del self.pending_fastener
+        # Clean up dat editor refs
+        for attr in ("pending_fastener", "_dat_entries", "_dat_editor_vars", "_dat_numeric_vars", "_unit_var"):
+            if hasattr(self, attr):
+                try:
+                    delattr(self, attr)
+                except Exception:
+                    pass
         try:
             self.add_item_entry.delete(0, "end")
         except Exception:
-            pass  # Entry destroyed when on template selection screen
+            pass
         self._on_selection_changed(None)
 
     def _add_new_catalog(self, section: str):
@@ -529,7 +764,7 @@ class IFXCatalogManager(ctk.CTk):
 
     def _add_to_catalog(self, catalog_name: str):
         """Add an item to a catalog file under the chosen section."""
-        item_name = (self.add_item_entry.get() or "").strip()
+        item_name = (self.add_item_entry.get() or "").strip().lower()
         section = self.add_section_combo.get()
         if not item_name:
             messagebox.showwarning("Missing name", "Please enter an item name.")
