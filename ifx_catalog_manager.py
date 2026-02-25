@@ -6,6 +6,7 @@ import shutil
 import customtkinter as ctk
 from pathlib import Path
 from tkinter import messagebox, filedialog
+from PIL import Image
 
 # Default sections - extracted from catalog files
 DEFAULT_SECTIONS = ["#screws", "#washers", "#nuts", "#inserts", "#pins"]
@@ -59,22 +60,47 @@ def get_catalog_file_path(catalogs_dir: Path, catalog_name: str) -> Path:
     return catalogs_dir / f"{catalog_name}.txt"
 
 
-def get_fastener_dat_template(item_name: str) -> str:
-    """Return .dat template content for a new fastener (HexBolt-style)."""
-    return f"""!
-!{item_name}\tANSI/ASME\tB18.2.1-1996
-!
-SCREWTYPE\t20
-UNIT\tINCH
-SURFACE\t126
-AXIS\t85
-INFO\t{item_name}
+SECTION_TO_TEMPLATE_FOLDER = {
+    "#screws": "screws",
+    "#washers": "washers",
+    "#nuts": "nuts",
+    "#inserts": "inserts",
+    "#pins": "pins",
+}
 
-SYMBOL\tSTRING\tDN\tLG\tB\tS\tDK\tK\tDG\tP\tBUW_NAME\tBUW_TYPE\tBUW_SIZE
-INSTANCE\tSTRING\tDN\tLG\tB\tS\tE\tK\tDG\tTPI(P)\tname\ttype\tsize
 
-{item_name.upper().replace(" ", "_")}-1_4-20x0_75\t1/4\t0.25\t0.75\t0.75\t0.4375\t0.5\t0.171875\t0.1959\t20\thexbolt\tANSI/ASME\t1/4-20 x 0.75
-"""
+def get_template_folder_for_section(section: str) -> str | None:
+    """Map section to template subfolder name."""
+    for key, folder in SECTION_TO_TEMPLATE_FOLDER.items():
+        if key in section:
+            return folder
+    return None
+
+
+def list_templates_with_gifs(templates_dir: Path, type_folder: str) -> list[tuple[str, Path, Path | None]]:
+    """
+    Walk through type_folder (screws, washers, etc.) and all subfolders to find templates.
+    A template folder contains {foldername}.dat (e.g. screw_01/screw_01.dat).
+    Returns list of (display_name, template_folder_path, gif_path or None).
+    """
+    type_path = templates_dir / type_folder
+    if not type_path.exists():
+        return []
+    result = []
+    for subdir in sorted(type_path.rglob("*")):
+        if not subdir.is_dir():
+            continue
+        base = subdir.name
+        dat_file = subdir / f"{base}.dat"
+        if not dat_file.exists():
+            continue
+        gif_path = None
+        for f in subdir.iterdir():
+            if f.is_file() and f.suffix.lower() == ".gif" and not f.stem.endswith("_detail"):
+                gif_path = f
+                break
+        result.append((base, subdir, gif_path))
+    return result
 
 
 class IFXCatalogManager(ctk.CTk):
@@ -90,6 +116,7 @@ class IFXCatalogManager(ctk.CTk):
         self.base_folder = Path(r"C:\dev\IFX Customizer")
         self.catalogs_dir = self.base_folder / "ifx" / "parts" / "ifx_catalogs"
         self.fastener_data_dir = self.base_folder / "ifx" / "parts" / "ifx_fastener_data"
+        self.templates_dir = self.base_folder / "ifx_fastener_templates"
         self.catalog_index_path = None
         self.display_items = []
         self.item_sections = {}  # item -> section
@@ -166,10 +193,12 @@ class IFXCatalogManager(ctk.CTk):
                 if cand.exists():
                     self.catalogs_dir = cand
                     self.fastener_data_dir = self.catalogs_dir.parent / "ifx_fastener_data"
+                    self.templates_dir = self.base_folder / "ifx_fastener_templates"
                     break
             else:
                 self.catalogs_dir = self.base_folder / "ifx" / "parts" / "ifx_catalogs"
                 self.fastener_data_dir = self.base_folder / "ifx" / "parts" / "ifx_fastener_data"
+                self.templates_dir = self.base_folder / "ifx_fastener_templates"
             self._load_catalog_index()
 
     def _load_catalog_index(self):
@@ -268,6 +297,163 @@ class IFXCatalogManager(ctk.CTk):
             text="Add to catalog",
             command=lambda: self._add_to_catalog(catalog_name),
         ).pack(anchor="w", pady=(15, 0))
+
+    def _build_template_selection_ui(self, item_name: str, section: str, catalog_name: str):
+        """After adding to catalog: show template picker, then copy files on button click."""
+        self._clear_action_frame()
+        self.pending_fastener = {"item_name": item_name, "section": section, "catalog_name": catalog_name}
+
+        type_folder = get_template_folder_for_section(section)
+        if not type_folder or not self.templates_dir.exists():
+            messagebox.showwarning(
+                "No templates",
+                f"No templates found for {section}. Add ifx_fastener_templates folder.",
+            )
+            self._on_selection_changed(None)
+            return
+
+        templates = list_templates_with_gifs(self.templates_dir, type_folder)
+        if not templates:
+            messagebox.showwarning(
+                "No templates",
+                f"No templates found in {self.templates_dir / type_folder}",
+            )
+            self._on_selection_changed(None)
+            return
+
+        self.template_options = [(base, path, gif_path) for base, path, gif_path in templates]
+        self.selected_template_path = self.template_options[0][1]  # default first
+
+        ctk.CTkLabel(
+            self.action_frame,
+            text=f"Select template for '{item_name}'",
+            font=ctk.CTkFont(weight="bold"),
+        ).pack(anchor="w", pady=(0, 10))
+
+        scroll_frame = ctk.CTkScrollableFrame(self.action_frame, width=560, height=200)
+        scroll_frame.pack(fill="both", expand=True, pady=(5, 10))
+
+        self._template_image_refs = []  # keep refs to avoid gc
+        self._template_cells = {}  # path -> cell for highlighting
+        thumb_size = (64, 64)
+        for i, (base, path, gif_path) in enumerate(self.template_options):
+            row, col = i // 6, i % 6
+            cell = ctk.CTkFrame(
+                scroll_frame,
+                fg_color=("gray90", "gray25"),
+                corner_radius=6,
+                border_width=2,
+                border_color=("gray75", "gray35"),
+                width=80,
+                height=90,
+            )
+            cell.grid(row=row, column=col, padx=5, pady=5, sticky="nw")
+            self._template_cells[path] = cell
+
+            if gif_path and gif_path.exists():
+                try:
+                    pil_img = Image.open(str(gif_path)).convert("RGBA")
+                    ctk_img = ctk.CTkImage(light_image=pil_img, size=thumb_size)
+                    self._template_image_refs.append((pil_img, ctk_img))
+                    btn = ctk.CTkButton(
+                        cell, image=ctk_img, text="", width=70, height=70,
+                        fg_color="transparent", hover_color=("gray80", "gray30"),
+                        border_width=0, cursor="hand2", command=lambda p=path: self._on_template_thumb_click(p),
+                    )
+                except Exception:
+                    btn = ctk.CTkButton(
+                        cell, text=base[:8], width=70, height=70,
+                        fg_color="transparent", hover_color=("gray80", "gray30"),
+                        cursor="hand2", command=lambda p=path: self._on_template_thumb_click(p),
+                    )
+            else:
+                btn = ctk.CTkButton(
+                    cell, text=base[:8], width=70, height=70,
+                    fg_color="transparent", hover_color=("gray80", "gray30"),
+                    cursor="hand2", command=lambda p=path: self._on_template_thumb_click(p),
+                )
+
+            btn.pack(pady=(4, 2))
+            ctk.CTkLabel(cell, text=base, font=ctk.CTkFont(size=11)).pack()
+
+        self._highlight_selected_template()
+
+        ctk.CTkButton(
+            self.action_frame,
+            text="Create from template",
+            command=self._create_from_template,
+        ).pack(anchor="w", pady=(0, 10))
+
+    def _on_template_thumb_click(self, template_path: Path):
+        """Update selection when user clicks a template thumbnail."""
+        self.selected_template_path = template_path
+        self._highlight_selected_template()
+
+    def _highlight_selected_template(self):
+        """Highlight the currently selected template cell."""
+        if not hasattr(self, "_template_cells"):
+            return
+        for path, cell in self._template_cells.items():
+            if path == getattr(self, "selected_template_path", None):
+                cell.configure(border_width=3, border_color=("#1f6aa5", "#3b8ed0"))
+            else:
+                cell.configure(border_width=2, border_color=("gray75", "gray35"))
+
+    def _create_from_template(self):
+        """Copy template .prt, .dat, .gifs to ifx_fastener_data with user's name."""
+        if not hasattr(self, "pending_fastener"):
+            return
+        pf = self.pending_fastener
+        item_name = pf["item_name"]
+        catalog_name = pf["catalog_name"]
+        section = pf["section"]
+
+        template_path = getattr(self, "selected_template_path", None)
+        if not template_path or not template_path.exists():
+            messagebox.showerror("Error", "Template not found.")
+            return
+
+        template_base = template_path.name  # e.g. screw_01
+        dest = self.fastener_data_dir
+        dest.mkdir(parents=True, exist_ok=True)
+
+        copied = []
+        for ext in [".prt", ".dat"]:
+            src = template_path / f"{template_base}{ext}"
+            if src.exists():
+                dst = dest / f"{item_name}{ext}"
+                try:
+                    if ext == ".dat":
+                        # Substitute template name with item_name in content
+                        content = src.read_text(encoding="utf-8", errors="ignore")
+                        content = content.replace(template_base, item_name)
+                        dst.write_text(content, encoding="utf-8")
+                    else:
+                        shutil.copy2(src, dst)
+                    copied.append(f"{item_name}{ext}")
+                except OSError as e:
+                    messagebox.showwarning("Copy failed", f"Could not copy {ext}: {e}")
+
+        for f in template_path.iterdir():
+            if f.suffix.lower() == ".gif":
+                dst = dest / f"{item_name}{f.suffix}"
+                try:
+                    shutil.copy2(f, dst)
+                    copied.append(f"{item_name}{f.suffix}")
+                except OSError:
+                    pass
+
+        msg = f"Added '{item_name}' to {catalog_name}.txt under {section}."
+        if copied:
+            msg += f"\n\nCreated: {', '.join(copied)}"
+        messagebox.showinfo("Success", msg)
+
+        del self.pending_fastener
+        try:
+            self.add_item_entry.delete(0, "end")
+        except Exception:
+            pass  # Entry destroyed when on template selection screen
+        self._on_selection_changed(None)
 
     def _add_new_catalog(self, section: str):
         """Create new catalog file and add to ifx_catalogs.txt."""
@@ -397,37 +583,8 @@ class IFXCatalogManager(ctk.CTk):
             messagebox.showerror("Error", f"Cannot write catalog: {e}")
             return
 
-        # Create .dat file - exact name as typed (e.g. MyNewBolt.dat)
-        dat_filename = f"{item_name}.dat"
-        dat_path = self.fastener_data_dir / dat_filename
-        if not dat_path.exists():
-            try:
-                self.fastener_data_dir.mkdir(parents=True, exist_ok=True)
-                template = get_fastener_dat_template(item_name)
-                with open(dat_path, "w", encoding="utf-8") as f:
-                    f.write(template)
-            except OSError as e:
-                messagebox.showwarning(
-                    "Catalog updated, .dat not created",
-                    f"Added to catalog but could not create {dat_filename}: {e}",
-                )
-
-        # Copy hex bolt .prt as demo - copy HexBolt.prt to {item_name}.prt
-        prt_path = self.fastener_data_dir / f"{item_name}.prt"
-        hexbolt_source = self.fastener_data_dir / "HexBolt.prt"
-        if hexbolt_source.exists() and not prt_path.exists():
-            try:
-                shutil.copy2(hexbolt_source, prt_path)
-            except OSError as e:
-                pass  # Silently skip if copy fails (e.g. permissions)
-
-        msg = f"Added '{item_name}' to {catalog_name}.txt under {section}."
-        if dat_path.exists():
-            msg += f"\n\nCreated {dat_filename}."
-        if prt_path.exists():
-            msg += f"\n\nCopied {item_name}.prt from hex bolt template."
-        messagebox.showinfo("Success", msg)
-        self.add_item_entry.delete(0, "end")
+        # Show template selection screen
+        self._build_template_selection_ui(item_name, section, catalog_name)
 
 
 def main():
