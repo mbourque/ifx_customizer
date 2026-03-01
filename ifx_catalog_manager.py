@@ -569,7 +569,7 @@ class IFXCatalogManager(ctk.CTk):
                 cell.configure(border_width=2, border_color=("gray75", "gray35"))
 
     def _create_from_template(self):
-        """Copy template .prt, .dat, .gifs to ifx_fastener_data with user's name."""
+        """Copy template .prt and .dat to ifx_fastener_data with user's name."""
         if not hasattr(self, "pending_fastener"):
             return
         pf = self.pending_fastener
@@ -662,15 +662,6 @@ class IFXCatalogManager(ctk.CTk):
                     copied.append(f"{item_name}{ext}")
                 except OSError as e:
                     messagebox.showwarning("Copy failed", f"Could not copy {ext}: {e}")
-
-        for f in template_path.iterdir():
-            if f.suffix.lower() == ".gif":
-                dst = dest / f"{item_name}{f.suffix}"
-                try:
-                    shutil.copy2(f, dst)
-                    copied.append(f"{item_name}{f.suffix}")
-                except OSError:
-                    pass
 
         msg = f"Added '{item_name}' to {catalog_name}.txt under {section}."
         if copied:
