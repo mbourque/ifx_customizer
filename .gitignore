@@ -1,0 +1,5 @@
+ifx_full/
+build/
+backups/
+test-models/
+venv/
