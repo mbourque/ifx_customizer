@@ -145,6 +145,33 @@ def get_detail_gif_path(template_dir: Path, base_name: str) -> Path | None:
     return p if p.exists() else None
 
 
+TYPE_PATTERNS = [
+    (r"SCREWTYPE\s+(\d+)", "screws", "screw"),
+    (r"WASHERTYPE\s+(\d+)", "washers", "washer"),
+    (r"NUTTYPE\s+(\d+)", "nuts", "nut"),
+    (r"INSERTTYPE\s+(\d+)", "inserts", "insert"),
+    (r"PINTYPE\s+(\d+)", "pins", "pin"),
+]
+
+
+def get_detail_gif_from_dat(dat_path: Path, templates_dir: Path) -> Path | None:
+    """Parse .dat for TYPE line (e.g. NUTTYPE 51) and find matching _detail.gif in templates."""
+    if not dat_path.exists() or not templates_dir.exists():
+        return None
+    content = dat_path.read_text(encoding="utf-8-sig", errors="ignore")
+    for pattern, type_folder, prefix in TYPE_PATTERNS:
+        m = re.search(pattern, content, re.IGNORECASE)
+        if m:
+            num = m.group(1)
+            template_name = f"{prefix}_{num}"
+            template_dir = templates_dir / type_folder / template_name
+            gif_path = get_detail_gif_path(template_dir, template_name)
+            if gif_path:
+                return gif_path
+            break
+    return None
+
+
 def list_templates_with_gifs(templates_dir: Path, type_folder: str) -> list[tuple[str, Path, Path | None]]:
     """
     Walk through type_folder (screws, washers, etc.) and all subfolders to find templates.
@@ -457,27 +484,44 @@ class IFXCatalogManager(ctk.CTk):
             command=self._show_dat_editor,
         ).pack(anchor="w", pady=(0, 10))
 
-    def _show_dat_editor(self):
+    def _show_dat_editor(self, append_mode: bool = False):
         """Show the .dat variable editor before creating the fastener."""
-        if not hasattr(self, "pending_fastener") or not hasattr(self, "selected_template_path"):
+        if not hasattr(self, "pending_fastener"):
             return
         pf = self.pending_fastener
-        template_path = self.selected_template_path
-        if not template_path.exists():
-            messagebox.showerror("Error", "Template not found.")
-            return
+        if append_mode:
+            item_name = pf["item_name"]
+            dat_path = self.fastener_data_dir / f"{item_name}.dat"
+            if not dat_path.exists():
+                messagebox.showerror("Error", f"Fastener data not found: {dat_path.name}")
+                return
+            template_path = self.fastener_data_dir
+            template_base = item_name
+        else:
+            if not hasattr(self, "selected_template_path"):
+                return
+            template_path = self.selected_template_path
+            if not template_path.exists():
+                messagebox.showerror("Error", "Template not found.")
+                return
+            template_base = template_path.name
+            dat_path = template_path / f"{template_base}.dat"
 
-        template_base = template_path.name
-        dat_path = template_path / f"{template_base}.dat"
         variables, unit, numeric_vars = parse_dat_variables(dat_path)
         if not variables:
+            if append_mode:
+                messagebox.showerror("Error", f"Could not parse variables from {dat_path.name}.")
+                return
             messagebox.showwarning("No variables", f"Could not parse variables from {dat_path.name}. Proceeding without form.")
             self._create_from_template()
             return
 
         self._dat_editor_vars = variables
         self._dat_numeric_vars = numeric_vars
-        detail_gif = get_detail_gif_path(template_path, template_base)
+        if append_mode:
+            detail_gif = get_detail_gif_from_dat(dat_path, self.templates_dir)
+        else:
+            detail_gif = get_detail_gif_path(template_path, template_base)
 
         self._clear_action_frame()
 
@@ -641,29 +685,58 @@ class IFXCatalogManager(ctk.CTk):
                 content += new_row + "\n"
                 dat_content_to_write = content
 
-        unit_val = getattr(self._unit_var, "get", lambda: "MM")() if hasattr(self, "_unit_var") else "MM"
-        prt_src = template_path / f"{template_base}_inch.prt" if unit_val == "INCH" else template_path / f"{template_base}.prt"
-        if unit_val == "INCH" and not prt_src.exists():
-            prt_src = template_path / f"{template_base}.prt"  # Fallback if _inch not found
+        existing_prt = (dest / f"{item_name}.prt").exists()
+        existing_dat = (dest / f"{item_name}.dat").exists()
+        append_row_only = existing_prt and existing_dat
 
-        for ext in [".prt", ".dat"]:
-            src = prt_src if ext == ".prt" else template_path / f"{template_base}{ext}"
-            if src.exists():
-                dst = dest / f"{item_name}{ext}"
+        if append_row_only:
+            # Fastener exists on disk - append new row to .dat, no catalog add, no .prt copy
+            if dat_content_to_write:
+                new_row = "\t".join(values)
+                dst_dat = dest / f"{item_name}.dat"
                 try:
-                    if ext == ".dat" and dat_content_to_write is not None:
-                        dst.write_text(dat_content_to_write, encoding="utf-8")
-                    elif ext == ".dat":
-                        content = src.read_text(encoding="utf-8", errors="ignore")
-                        content = content.replace(template_base, item_name)
-                        dst.write_text(content, encoding="utf-8")
-                    else:
-                        shutil.copy2(src, dst)
-                    copied.append(f"{item_name}{ext}")
+                    content = dst_dat.read_text(encoding="utf-8", errors="ignore")
+                    content = content.rstrip()
+                    if content and not content.endswith("\n"):
+                        content += "\n"
+                    content += new_row + "\n"
+                    dst_dat.write_text(content, encoding="utf-8")
+                    copied.append(f"{item_name}.dat (appended row)")
                 except OSError as e:
-                    messagebox.showwarning("Copy failed", f"Could not copy {ext}: {e}")
+                    messagebox.showerror("Error", f"Cannot append to .dat: {e}")
+                    return
+            else:
+                messagebox.showwarning("Error", "No form data to append. Use template with variables.")
+                return
+            msg = f"Appended row to '{item_name}.dat'."
+        else:
+            # New fastener - add to catalog, copy .prt and .dat
+            if not self._add_item_to_catalog_file(catalog_name, section, item_name):
+                return
 
-        msg = f"Added '{item_name}' to {catalog_name}.txt under {section}."
+            unit_val = getattr(self._unit_var, "get", lambda: "MM")() if hasattr(self, "_unit_var") else "MM"
+            prt_src = template_path / f"{template_base}_inch.prt" if unit_val == "INCH" else template_path / f"{template_base}.prt"
+            if unit_val == "INCH" and not prt_src.exists():
+                prt_src = template_path / f"{template_base}.prt"  # Fallback if _inch not found
+
+            for ext in [".prt", ".dat"]:
+                src = prt_src if ext == ".prt" else template_path / f"{template_base}{ext}"
+                if src.exists():
+                    dst = dest / f"{item_name}{ext}"
+                    try:
+                        if ext == ".dat" and dat_content_to_write is not None:
+                            dst.write_text(dat_content_to_write, encoding="utf-8")
+                        elif ext == ".dat":
+                            content = src.read_text(encoding="utf-8", errors="ignore")
+                            content = content.replace(template_base, item_name)
+                            dst.write_text(content, encoding="utf-8")
+                        else:
+                            shutil.copy2(src, dst)
+                        copied.append(f"{item_name}{ext}")
+                    except OSError as e:
+                        messagebox.showwarning("Copy failed", f"Could not copy {ext}: {e}")
+
+            msg = f"Added '{item_name}' to {catalog_name}.txt under {section}."
         if copied:
             msg += f"\n\nCreated: {', '.join(copied)}"
         messagebox.showinfo("Success", msg)
@@ -753,33 +826,20 @@ class IFXCatalogManager(ctk.CTk):
         self.new_name_entry.delete(0, "end")
         self._load_catalog_index()
 
-    def _add_to_catalog(self, catalog_name: str):
-        """Add an item to a catalog file under the chosen section."""
-        item_name = (self.add_item_entry.get() or "").strip().lower()
-        section = self.add_section_combo.get()
-        if not item_name:
-            messagebox.showwarning("Missing name", "Please enter an item name.")
-            return
-        if " " in item_name:
-            messagebox.showwarning("Invalid name", "Spaces are not allowed in item names.")
-            return
-
+    def _add_item_to_catalog_file(
+        self, catalog_name: str, section: str, item_name: str
+    ) -> bool:
+        """Add an item to a catalog file. Returns True on success."""
         catalog_path = get_catalog_file_path(self.catalogs_dir, catalog_name)
         if not catalog_path.exists():
-            messagebox.showerror(
-                "Error", f"Catalog file not found: {catalog_path}"
-            )
-            return
-
+            messagebox.showerror("Error", f"Catalog file not found: {catalog_path}")
+            return False
         try:
             with open(catalog_path, "r", encoding="utf-8-sig") as f:
                 lines = f.readlines()
         except OSError as e:
             messagebox.showerror("Error", f"Cannot read catalog: {e}")
-            return
-
-        # Find section and next #heading; insert right after last item of section
-        # Remove any blank lines between last item and next # (avoid extra space)
+            return False
         next_heading_idx = len(lines)
         last_item_idx = -1
         for i, line in enumerate(lines):
@@ -794,10 +854,8 @@ class IFXCatalogManager(ctk.CTk):
                         last_item_idx = j
                     j += 1
                 break
-
         new_entry = f"{item_name}\n\n"
         insert_idx = last_item_idx + 1
-        # Remove all blank lines between last item and next heading
         while insert_idx < next_heading_idx and insert_idx < len(lines) and not lines[insert_idx].strip():
             del lines[insert_idx]
             next_heading_idx -= 1
@@ -807,10 +865,36 @@ class IFXCatalogManager(ctk.CTk):
                 f.writelines(lines)
         except OSError as e:
             messagebox.showerror("Error", f"Cannot write catalog: {e}")
+            return False
+        return True
+
+    def _add_to_catalog(self, catalog_name: str):
+        """Validate item name. If fastener exists, go to dat editor; else show template selection."""
+        item_name = (self.add_item_entry.get() or "").strip().lower()
+        section = self.add_section_combo.get()
+        if not item_name:
+            messagebox.showwarning("Missing name", "Please enter an item name.")
+            return
+        if " " in item_name:
+            messagebox.showwarning("Invalid name", "Spaces are not allowed in item names.")
             return
 
-        # Show template selection screen
-        self._build_template_selection_ui(item_name, section, catalog_name)
+        catalog_path = get_catalog_file_path(self.catalogs_dir, catalog_name)
+        if not catalog_path.exists():
+            messagebox.showerror("Error", f"Catalog file not found: {catalog_path}")
+            return
+
+        dest = self.fastener_data_dir
+        exists_on_disk = (dest / f"{item_name}.prt").exists() and (dest / f"{item_name}.dat").exists()
+        if exists_on_disk:
+            self.pending_fastener = {
+                "item_name": item_name, "section": section, "catalog_name": catalog_name,
+                "append_mode": True,
+            }
+            self.selected_template_path = dest
+            self._show_dat_editor(append_mode=True)
+        else:
+            self._build_template_selection_ui(item_name, section, catalog_name)
 
 
 def main():
