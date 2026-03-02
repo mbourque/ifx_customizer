@@ -12,8 +12,8 @@ from PIL import Image
 # Default sections - extracted from catalog files
 DEFAULT_SECTIONS = ["#screws", "#washers", "#nuts", "#inserts", "#pins"]
 
-# Catalog index filename (try both variants)
-CATALOG_INDEX_FILES = ["ifx_catalog.txt", "ifx_catalogs.txt"]
+# Catalog index filename
+CATALOG_INDEX_FILES = ["ifx_catalogs.txt"]
 
 # INSTANCE row types that indicate text (not numeric)
 TEXT_TYPES = {"STRING", "name", "type", "size"}
@@ -241,7 +241,7 @@ class IFXCatalogManager(ctk.CTk):
         self.list_frame = ctk.CTkFrame(self, fg_color="transparent")
         self.list_frame.pack(fill="x", padx=20, pady=4)
 
-        ctk.CTkLabel(self.list_frame, text="Catalog (ifx_catalog.txt):").pack(anchor="w")
+        ctk.CTkLabel(self.list_frame, text="Catalog (ifx_catalogs.txt):").pack(anchor="w")
         self.combo_var = ctk.StringVar()
         self.catalog_combo = ctk.CTkComboBox(
             self.list_frame,
@@ -301,7 +301,7 @@ class IFXCatalogManager(ctk.CTk):
         if not self.catalog_index_path:
             self.display_items = []
             self.item_sections = {}
-            self.catalog_combo.configure(values=["(No ifx_catalog.txt found)"])
+            self.catalog_combo.configure(values=["(No ifx_catalogs.txt found)"])
             self.combo_var.set("")
             return
 
