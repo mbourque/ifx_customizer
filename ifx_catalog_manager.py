@@ -553,14 +553,16 @@ class IFXCatalogManager(ctk.CTk):
         else:
             self._detail_image_ref = None
 
-        # Units only - on its own row
+        # Units only - on its own row (disabled in append mode)
         top_row = ctk.CTkFrame(inner, fg_color="transparent")
         top_row.pack(fill="x", pady=(0, 2))
         ctk.CTkLabel(top_row, text="Units:").pack(side="left", padx=(0, 6))
         self._unit_var = ctk.StringVar(value=unit)
-        ctk.CTkComboBox(
-            top_row, values=["MM", "INCH"], variable=self._unit_var, width=80, state="readonly"
-        ).pack(side="left")
+        unit_combo = ctk.CTkComboBox(
+            top_row, values=["MM", "INCH"], variable=self._unit_var, width=80,
+            state="disabled" if append_mode else "readonly",
+        )
+        unit_combo.pack(side="left")
 
         # Form: INFO is hidden (auto-set to fastener name), other vars visible
         form_frame = ctk.CTkFrame(inner, fg_color="transparent")
@@ -591,11 +593,27 @@ class IFXCatalogManager(ctk.CTk):
                 entry.grid(row=i, column=3, sticky="w", pady=1)
                 self._dat_entries[v] = entry
 
-        ctk.CTkButton(
-            inner,
-            text="Create",
-            command=self._create_from_template,
-        ).pack(anchor="e", pady=(4, 0))
+        btn_frame = ctk.CTkFrame(inner, fg_color="transparent")
+        btn_frame.pack(anchor="e", pady=(4, 0))
+        ctk.CTkButton(btn_frame, text="Create", command=self._create_from_template).pack(
+            side="right"
+        )
+        ctk.CTkButton(btn_frame, text="Cancel", command=self._cancel_dat_editor).pack(
+            side="right", padx=(0, 12)
+        )
+
+    def _cancel_dat_editor(self):
+        """Cancel the dat editor and return to previous screen."""
+        for attr in ("pending_fastener", "_dat_entries", "_dat_editor_vars", "_dat_numeric_vars", "_unit_var"):
+            if hasattr(self, attr):
+                try:
+                    delattr(self, attr)
+                except Exception:
+                    pass
+        self.folder_frame.pack(fill="x", padx=20, pady=(10, 4), before=self.action_frame)
+        self.list_frame.pack(fill="x", padx=20, pady=4, before=self.action_frame)
+        self.geometry("700x550")
+        self._on_selection_changed(None)
 
     def _on_template_thumb_click(self, template_path: Path):
         """Update selection when user clicks a template thumbnail."""
