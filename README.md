@@ -2,6 +2,11 @@
 
 A desktop application for managing IFX fastener catalogs. Create new catalogs, add fasteners from templates, and append data rows to existing fastener files.
 
+## Installation & Creo Setup
+
+1. **Download** the project and extract it to a separate directory (e.g. `C:\IFX Customizer`).
+2. **Configure Creo** to point to the IFX parts folder: `{install_location}\ifx\parts`. This is where Creo reads catalogs and fastener data from.
+
 ## Quick Start (No Python Required)
 
 A pre-built Windows executable is available in the `dist` folder:
