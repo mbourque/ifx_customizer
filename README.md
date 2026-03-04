@@ -116,7 +116,7 @@ Creates `{name}.txt` and adds it to the catalog index.
 - **SYMBOL, STRING, DN, LG, …:** Fill according to the template
 - **INFO:** Auto-set to the fastener name (hidden field)
 - A **dimension legend** (`*_detail.gif`) is shown when available
-- **Validation:** Numeric fields must use `.` for decimals (not `,`). SYMBOL cannot match the item name
+- **Validation:** Numeric fields must use decimals or whole numbers. SYMBOL cannot match the item name
 - **Cancel:** Returns to the previous screen without saving
 
 ### 5. What Gets Created
@@ -148,10 +148,9 @@ Templates live under `ifx_fastener_templates/{type}/`:
 
 Each template folder must:
 
-1. **Match names:** Folder name must match the `.dat` filename (e.g. `screw_161/screw_161.dat`)
+1. **Match names:** Folder name must match the `.dat` filename (e.g. `screw_61/screw_61.dat`)
 2. **Contain:** `{name}.dat` and `{name}.prt` (or `{name}_inch.prt` for inch)
-3. **Optional:** `{name}.gif` for the template picker thumbnail
-4. **Optional:** `{name}_detail.gif` for the dimension legend on the Enter values screen
+3. `{name}_detail.gif` for the dimension legend on the Enter values screen
 
 The `.dat` file must have:
 
