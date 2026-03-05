@@ -759,7 +759,16 @@ class IFXCatalogManager(ctk.CTk):
             msg += f"\n\nCreated: {', '.join(copied)}"
         messagebox.showinfo("Success", msg)
 
-        # Clean up dat editor refs
+        if messagebox.askyesno("Add another?", f"Add another row for '{item_name}'?"):
+            # Clear form so user can enter new values; stay on dat editor
+            for entry in getattr(self, "_dat_entries", {}).values():
+                try:
+                    entry.delete(0, "end")
+                except Exception:
+                    pass
+            return
+
+        # Clean up dat editor refs and return to catalog view
         for attr in ("pending_fastener", "_dat_entries", "_dat_editor_vars", "_dat_numeric_vars", "_unit_var"):
             if hasattr(self, attr):
                 try:
