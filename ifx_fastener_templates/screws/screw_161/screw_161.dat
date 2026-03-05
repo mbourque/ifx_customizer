@@ -1,0 +1,16 @@
+!------------------------------------------------------------
+!	Machine Screws and Machine Screw Nuts - ANSI B18.6.3-1972
+!	Type I Cross Recessed Flat Countersunk Head Machine Screw
+!------------------------------------------------------------
+
+SCREWTYPE	61
+UNIT	INCH
+SURFACE	22
+AXIS	47
+INFO	<YOUR SCREW161>
+
+SYMBOL	STRING	DN	LG	DK	K	P
+INSTANCE	STRING	basic_dia	L	A	K	P
+
+phillips1	1/4-20	0.25	0.5	0.507	0.1478	20
+phillips2	1/4-20	0.25	0.75	0.507	0.1478	20
