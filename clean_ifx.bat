@@ -14,12 +14,12 @@ if exist "%BASE%\ifx\parts\ifx_fastener_data" (
     del /q "%BASE%\ifx\parts\ifx_fastener_data\*.*" 2>nul
 )
 
-rem 4) Clean ifx\parts\ifx_catalogs, keep only ifx_catalogs.txt
+rem 4) Clean ifx\parts\ifx_catalogs, keep ifx_catalogs.txt and images
 if exist "%BASE%\ifx\parts\ifx_catalogs" (
     pushd "%BASE%\ifx\parts\ifx_catalogs"
 
     for %%F in (*.*) do (
-        if /I not "%%~nxF"=="ifx_catalogs.txt" del "%%F"
+        if /I not "%%~nxF"=="ifx_catalogs.txt" if /I not "%%~xF"==".gif" if /I not "%%~xF"==".png" del "%%F"
     )
 
     (
