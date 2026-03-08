@@ -154,6 +154,26 @@ TYPE_PATTERNS = [
 ]
 
 
+def _find_template_dir_with_detail_gif(templates_dir: Path, type_folder: str, prefix: str, num: str) -> Path | None:
+    """Find template dir under type_folder whose name is prefix_N (N matches num) and has _detail.gif."""
+    type_path = templates_dir / type_folder
+    if not type_path.exists():
+        return None
+    num_int = int(num)
+    for subdir in type_path.iterdir():
+        if not subdir.is_dir() or not subdir.name.startswith(prefix + "_"):
+            continue
+        suffix = subdir.name[len(prefix) + 1:]
+        if not suffix.isdigit():
+            continue
+        if int(suffix) != num_int:
+            continue
+        gif_path = get_detail_gif_path(subdir, subdir.name)
+        if gif_path:
+            return gif_path
+    return None
+
+
 def get_detail_gif_from_dat(dat_path: Path, templates_dir: Path) -> Path | None:
     """Parse .dat for TYPE line (e.g. NUTTYPE 51) and find matching _detail.gif in templates."""
     if not dat_path.exists() or not templates_dir.exists():
@@ -163,9 +183,13 @@ def get_detail_gif_from_dat(dat_path: Path, templates_dir: Path) -> Path | None:
         m = re.search(pattern, content, re.IGNORECASE)
         if m:
             num = m.group(1)
+            # Try exact name first (e.g. screw_161), then resolve by number (screw_01 for num "1")
             template_name = f"{prefix}_{num}"
             template_dir = templates_dir / type_folder / template_name
             gif_path = get_detail_gif_path(template_dir, template_name)
+            if gif_path:
+                return gif_path
+            gif_path = _find_template_dir_with_detail_gif(templates_dir, type_folder, prefix, num)
             if gif_path:
                 return gif_path
             break
@@ -520,6 +544,9 @@ class IFXCatalogManager(ctk.CTk):
         self._dat_numeric_vars = numeric_vars
         if append_mode:
             detail_gif = get_detail_gif_from_dat(dat_path, self.templates_dir)
+            # Fallback: part library may have {item_name}_detail.gif next to .dat
+            if not (detail_gif and detail_gif.exists()):
+                detail_gif = get_detail_gif_path(self.fastener_data_dir, pf["item_name"])
         else:
             detail_gif = get_detail_gif_path(template_path, template_base)
 
@@ -702,6 +729,11 @@ class IFXCatalogManager(ctk.CTk):
                     content += "\n"
                 content += new_row + "\n"
                 dat_content_to_write = content
+
+            # Append from main screen: template_path is fastener_data_dir, so src_dat was wrong.
+            # We have form values; allow append by setting dat_content_to_write when dest .dat exists.
+            if dat_content_to_write is None and (dest / f"{item_name}.dat").exists():
+                dat_content_to_write = True  # truthy so append branch uses values
 
         existing_prt = (dest / f"{item_name}.prt").exists()
         existing_dat = (dest / f"{item_name}.dat").exists()
