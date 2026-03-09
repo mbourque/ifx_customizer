@@ -15,6 +15,8 @@ DEFAULT_SECTIONS = ["#screws", "#washers", "#nuts", "#inserts", "#pins"]
 # Catalog index filename
 CATALOG_INDEX_FILES = ["ifx_catalogs.txt"]
 
+MANIFEST_FILENAME = "ifx_customizer_created.txt"
+
 # INSTANCE row types that indicate text (not numeric)
 TEXT_TYPES = {"STRING", "name", "type", "size"}
 # Variable names that are always text, regardless of INSTANCE row
@@ -81,6 +83,45 @@ def parse_catalog_index(file_path: Path) -> tuple[list[str], list[tuple[str, str
 def get_catalog_file_path(catalogs_dir: Path, catalog_name: str) -> Path:
     """Get path to a catalog's .txt file."""
     return catalogs_dir / f"{catalog_name}.txt"
+
+
+def get_manifest_path(catalogs_dir: Path) -> Path:
+    """Get path to the manifest of fasteners created with this tool."""
+    return catalogs_dir / MANIFEST_FILENAME
+
+
+def load_manifest(manifest_path: Path) -> list[tuple[str, str, str]]:
+    """
+    Load manifest entries as (item_name, catalog_name, section).
+    Returns an empty list if the file does not exist.
+    """
+    if not manifest_path.exists():
+        return []
+    entries: list[tuple[str, str, str]] = []
+    seen: set[tuple[str, str, str]] = set()
+    with open(manifest_path, "r", encoding="utf-8-sig", errors="ignore") as f:
+        for line in f:
+            stripped = line.strip()
+            if not stripped:
+                continue
+            parts = [p.strip() for p in stripped.split("\t")]
+            if len(parts) != 3:
+                continue
+            item_name, catalog_name, section = parts
+            key = (item_name, catalog_name, section)
+            if key in seen:
+                continue
+            seen.add(key)
+            entries.append(key)
+    return entries
+
+
+def append_to_manifest(manifest_path: Path, item_name: str, catalog_name: str, section: str) -> None:
+    """Append a single manifest record (item, catalog, section). Creates the file if needed."""
+    line = f"{item_name.strip()}\t{catalog_name.strip()}\t{section.strip()}\n"
+    manifest_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(manifest_path, "a", encoding="utf-8") as f:
+        f.write(line)
 
 
 SECTION_TO_TEMPLATE_FOLDER = {
@@ -231,11 +272,9 @@ class IFXCatalogManager(ctk.CTk):
         ctk.set_appearance_mode("light")
         ctk.set_default_color_theme("blue")
 
-        # Data paths
-        self.base_folder = Path(r"C:\dev\IFX Customizer")
-        self.catalogs_dir = self.base_folder / "ifx" / "parts" / "ifx_catalogs"
-        self.fastener_data_dir = self.base_folder / "ifx" / "parts" / "ifx_fastener_data"
-        self.templates_dir = self.base_folder / "ifx_fastener_templates"
+        # Data paths: IFX data folder is the single source of truth (no auto-discovery)
+        self.base_folder = Path(r"C:\dev\IFX Customizer\ifx")
+        self._update_paths_from_base_folder()
         self.catalog_index_path = None
         self.display_items = []
         self.item_sections = {}  # item -> section
@@ -260,6 +299,7 @@ class IFXCatalogManager(ctk.CTk):
         ctk.CTkButton(
             self.folder_frame, text="Browse", width=80, command=self._browse_folder
         ).pack(side="left")
+        self.folder_entry.bind("<Return>", lambda e: self._apply_folder_from_entry())
 
         # Catalog list frame (hidden when on dat editor)
         self.list_frame = ctk.CTkFrame(self, fg_color="transparent")
@@ -287,6 +327,22 @@ class IFXCatalogManager(ctk.CTk):
         self.action_frame = ctk.CTkFrame(self, fg_color="transparent")
         self.action_frame.pack(fill="both", expand=True, padx=20, pady=8)
 
+    def _update_paths_from_base_folder(self):
+        """Set catalogs_dir, fastener_data_dir, templates_dir from base_folder (no auto-discovery)."""
+        b = self.base_folder
+        self.catalogs_dir = b / "parts" / "ifx_catalogs"
+        self.fastener_data_dir = b / "parts" / "ifx_fastener_data"
+        self.templates_dir = b.parent / "ifx_fastener_templates"
+
+    def _apply_folder_from_entry(self):
+        """Read IFX Data Folder from the entry and update all paths, then reload catalog index."""
+        raw = (self.folder_var.get() or "").strip()
+        if not raw:
+            return
+        self.base_folder = Path(raw)
+        self._update_paths_from_base_folder()
+        self._load_catalog_index()
+
     def _find_catalog_index(self) -> Path | None:
         """Find the catalog index file in catalogs directory."""
         for name in CATALOG_INDEX_FILES:
@@ -300,24 +356,9 @@ class IFXCatalogManager(ctk.CTk):
             initialdir=str(self.base_folder), title="Select IFX data folder"
         )
         if folder:
-            self.base_folder = Path(folder)
             self.folder_var.set(folder)
-            # Try common locations for ifx_catalogs (ifx11 is used by some IFX installs)
-            for subpath in [
-                Path("ifx") / "parts" / "ifx_catalogs",
-                Path("ifx11") / "parts" / "ifx_catalogs",
-                Path("ifx_catalogs"),
-            ]:
-                cand = self.base_folder / subpath
-                if cand.exists():
-                    self.catalogs_dir = cand
-                    self.fastener_data_dir = self.catalogs_dir.parent / "ifx_fastener_data"
-                    self.templates_dir = self.base_folder / "ifx_fastener_templates"
-                    break
-            else:
-                self.catalogs_dir = self.base_folder / "ifx" / "parts" / "ifx_catalogs"
-                self.fastener_data_dir = self.base_folder / "ifx" / "parts" / "ifx_fastener_data"
-                self.templates_dir = self.base_folder / "ifx_fastener_templates"
+            self.base_folder = Path(folder)
+            self._update_paths_from_base_folder()
             self._load_catalog_index()
 
     def _load_catalog_index(self):
@@ -398,6 +439,28 @@ class IFXCatalogManager(ctk.CTk):
         else:
             self.sections = DEFAULT_SECTIONS
 
+        # Load manifest entries for this catalog and group by section
+        manifest_path = get_manifest_path(self.catalogs_dir)
+        manifest_entries = load_manifest(manifest_path)
+        items_by_section: dict[str, set[str]] = {sec: set() for sec in self.sections}
+        for item_name, cat_name, section in manifest_entries:
+            if cat_name == catalog_name and section in items_by_section:
+                items_by_section[section].add(item_name)
+
+        # Build combined dropdown values: section headers plus indented item names
+        combined_values: list[str] = []
+        add_section_meta: list[tuple[str, str, str | None]] = []
+        for section in self.sections:
+            combined_values.append(section)
+            add_section_meta.append((section, section, None))
+            names = sorted(items_by_section.get(section, set()))
+            for name in names:
+                display = f"  {name}"
+                combined_values.append(display)
+                add_section_meta.append((display, section, name))
+
+        self._add_section_options = add_section_meta
+
         row1 = ctk.CTkFrame(self.action_frame, fg_color="transparent")
         row1.pack(fill="x", pady=5)
         ctk.CTkLabel(row1, text="Item name:", width=120).pack(side="left", padx=(0, 10))
@@ -409,8 +472,38 @@ class IFXCatalogManager(ctk.CTk):
         ctk.CTkLabel(row2, text="Add under section:", width=120).pack(
             side="left", padx=(0, 10)
         )
+
+        self._selected_section_for_add = self.sections[0] if self.sections else ""
+
+        def _on_add_section_change(choice: str) -> None:
+            if not hasattr(self, "_add_section_options"):
+                return
+            # Prevent re-entrancy when we call .set() inside this callback
+            if getattr(self, "_suppress_add_section_callback", False):
+                return
+            for display, section, item_name in self._add_section_options:
+                if display == choice:
+                    self._selected_section_for_add = section
+                    try:
+                        self._suppress_add_section_callback = True
+                        self.add_section_combo.set(section)
+                    finally:
+                        self._suppress_add_section_callback = False
+                    if item_name is None:
+                        # Section header selected - clear item name
+                        self.add_item_entry.delete(0, "end")
+                    else:
+                        # Existing fastener selected - fill item name
+                        self.add_item_entry.delete(0, "end")
+                        self.add_item_entry.insert(0, item_name)
+                    break
+
         self.add_section_combo = ctk.CTkComboBox(
-            row2, values=self.sections, width=150, state="readonly"
+            row2,
+            values=combined_values if combined_values else self.sections,
+            width=150,
+            state="readonly",
+            command=_on_add_section_change,
         )
         self.add_section_combo.pack(side="left", padx=(0, 10))
         if self.sections:
@@ -742,13 +835,13 @@ class IFXCatalogManager(ctk.CTk):
         if append_row_only:
             # Fastener exists on disk - append new row to .dat, no catalog add, no .prt copy
             if dat_content_to_write:
-                new_row = "\t".join(values)
                 dst_dat = dest / f"{item_name}.dat"
                 try:
                     content = dst_dat.read_text(encoding="utf-8", errors="ignore")
                     content = content.rstrip()
                     if content and not content.endswith("\n"):
                         content += "\n"
+                    new_row = "\t".join(values)
                     content += new_row + "\n"
                     dst_dat.write_text(content, encoding="utf-8")
                     copied.append(f"{item_name}.dat (appended row)")
@@ -787,6 +880,9 @@ class IFXCatalogManager(ctk.CTk):
                         messagebox.showwarning("Copy failed", f"Could not copy {ext}: {e}")
 
             msg = f"Added '{item_name}' to {catalog_name}.txt under {section}."
+            # Record newly created fastener in manifest (name, catalog, section)
+            manifest_path = get_manifest_path(self.catalogs_dir)
+            append_to_manifest(manifest_path, item_name, catalog_name, section)
         if copied:
             msg += f"\n\nCreated: {', '.join(copied)}"
         messagebox.showinfo("Success", msg)
