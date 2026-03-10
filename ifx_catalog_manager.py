@@ -16,6 +16,7 @@ DEFAULT_SECTIONS = ["#screws", "#washers", "#nuts", "#inserts", "#pins"]
 CATALOG_INDEX_FILES = ["ifx_catalogs.txt"]
 
 MANIFEST_FILENAME = "ifx_customizer_created.txt"
+SYMBOLS_FILENAME = "ifx_customizer_symbols.txt"
 
 # INSTANCE row types that indicate text (not numeric)
 TEXT_TYPES = {"STRING", "name", "type", "size"}
@@ -122,6 +123,33 @@ def append_to_manifest(manifest_path: Path, item_name: str, catalog_name: str, s
     manifest_path.parent.mkdir(parents=True, exist_ok=True)
     with open(manifest_path, "a", encoding="utf-8") as f:
         f.write(line)
+
+
+def get_symbols_path(catalogs_dir: Path) -> Path:
+    """Path to the file storing all SYMBOL names (one per line). Same folder as manifest."""
+    return catalogs_dir / SYMBOLS_FILENAME
+
+
+def load_symbols(symbols_path: Path) -> set[str]:
+    """Load all stored symbol names (lowercase). Returns empty set if file does not exist."""
+    if not symbols_path.exists():
+        return set()
+    out: set[str] = set()
+    with open(symbols_path, "r", encoding="utf-8-sig", errors="ignore") as f:
+        for line in f:
+            s = line.strip()
+            if s:
+                out.add(s.lower())
+    return out
+
+
+def append_symbol(symbols_path: Path, symbol: str) -> None:
+    """Append one symbol (stored lowercase). Creates the file if it does not exist."""
+    if not symbol.strip():
+        return
+    symbols_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(symbols_path, "a", encoding="utf-8") as f:
+        f.write(symbol.strip().lower() + "\n")
 
 
 SECTION_TO_TEMPLATE_FOLDER = {
@@ -633,6 +661,10 @@ class IFXCatalogManager(ctk.CTk):
             self._create_from_template()
             return
 
+        # Default units for new fasteners is INCH; keep existing units for append mode
+        if not append_mode:
+            unit = "INCH"
+
         self._dat_editor_vars = variables
         self._dat_numeric_vars = numeric_vars
         if append_mode:
@@ -758,6 +790,7 @@ class IFXCatalogManager(ctk.CTk):
         item_name = pf["item_name"]
         catalog_name = pf["catalog_name"]
         section = pf["section"]
+        symbol_str = ""
 
         template_path = getattr(self, "selected_template_path", None)
         if not template_path or not template_path.exists():
@@ -781,6 +814,10 @@ class IFXCatalogManager(ctk.CTk):
                 else:
                     entry = self._dat_entries.get(var)
                     raw = entry.get().strip() if entry else ""
+                    # All visible fields must be filled in before saving
+                    if not raw:
+                        messagebox.showwarning("Missing value", f"Please enter a value for '{var}'.")
+                        return
                 _, err = validate_numeric_value(var, raw, getattr(self, "_dat_numeric_vars", set()))
                 if err:
                     messagebox.showwarning("Invalid value", err)
@@ -793,6 +830,16 @@ class IFXCatalogManager(ctk.CTk):
             if info_str and symbol_str and info_str.lower() == symbol_str.lower():
                 messagebox.showwarning("Invalid value", f"SYMBOL cannot be same name as Item Name ({info_str})")
                 return
+            # SYMBOL must be unique (case-insensitive)
+            if symbol_str:
+                symbols_path = get_symbols_path(self.catalogs_dir)
+                existing_symbols = load_symbols(symbols_path)
+                if symbol_str.lower() in existing_symbols:
+                    messagebox.showerror(
+                        "Symbol already exists",
+                        "That SYMBOL name is already in use. SYMBOL must be unique.",
+                    )
+                    return
 
             src_dat = template_path / f"{template_base}.dat"
             if src_dat.exists():
@@ -845,6 +892,8 @@ class IFXCatalogManager(ctk.CTk):
                     content += new_row + "\n"
                     dst_dat.write_text(content, encoding="utf-8")
                     copied.append(f"{item_name}.dat (appended row)")
+                    if symbol_str:
+                        append_symbol(get_symbols_path(self.catalogs_dir), symbol_str)
                 except OSError as e:
                     messagebox.showerror("Error", f"Cannot append to .dat: {e}")
                     return
@@ -883,6 +932,8 @@ class IFXCatalogManager(ctk.CTk):
             # Record newly created fastener in manifest (name, catalog, section)
             manifest_path = get_manifest_path(self.catalogs_dir)
             append_to_manifest(manifest_path, item_name, catalog_name, section)
+            if symbol_str:
+                append_symbol(get_symbols_path(self.catalogs_dir), symbol_str)
         if copied:
             msg += f"\n\nCreated: {', '.join(copied)}"
         messagebox.showinfo("Success", msg)
@@ -1034,6 +1085,18 @@ class IFXCatalogManager(ctk.CTk):
             messagebox.showwarning("Invalid name", "Spaces are not allowed in item names.")
             return
 
+        # Fastener name cannot be the same as a catalog name (case-insensitive)
+        catalog_names_lower = {
+            name.lower() for name in getattr(self, "display_items", [])
+            if name and not name.startswith("#")
+        }
+        if item_name in catalog_names_lower:
+            messagebox.showerror(
+                "Invalid name",
+                "That name is already used as a catalog name. Please choose a different fastener name.",
+            )
+            return
+
         catalog_path = get_catalog_file_path(self.catalogs_dir, catalog_name)
         if not catalog_path.exists():
             messagebox.showerror("Error", f"Catalog file not found: {catalog_path}")
@@ -1041,7 +1104,41 @@ class IFXCatalogManager(ctk.CTk):
 
         dest = self.fastener_data_dir
         exists_on_disk = (dest / f"{item_name}.prt").exists() and (dest / f"{item_name}.dat").exists()
-        if exists_on_disk:
+
+        # Load manifest and build mapping of name -> sections for this catalog (case-insensitive)
+        manifest_path = get_manifest_path(self.catalogs_dir)
+        manifest_entries = load_manifest(manifest_path)
+        name_sections: dict[str, set[str]] = {}
+        for name, cat_name, sec in manifest_entries:
+            if cat_name == catalog_name:
+                key = name.lower()
+                if key not in name_sections:
+                    name_sections[key] = set()
+                name_sections[key].add(sec)
+
+        key_name = item_name.lower()
+        if key_name in name_sections:
+            sections_for_name = name_sections[key_name]
+            # If name already exists under a different section, disallow reuse
+            if section not in sections_for_name:
+                messagebox.showerror(
+                    "Name already exists",
+                    "That fastener name already exists under a different section. "
+                    "Names must be unique per catalog. Select the existing fastener "
+                    "from the dropdown if you want to append.",
+                )
+                return
+            # Name exists under this section; if files are missing, also block to avoid inconsistencies
+            if not exists_on_disk:
+                messagebox.showerror(
+                    "Name already exists",
+                    "That fastener name already exists in the catalog, but its data files "
+                    "were not found. Please choose a different name.",
+                )
+                return
+
+        if exists_on_disk and key_name in name_sections:
+            # Existing fastener in this catalog/section -> append mode
             self.pending_fastener = {
                 "item_name": item_name, "section": section, "catalog_name": catalog_name,
                 "append_mode": True,
@@ -1049,6 +1146,15 @@ class IFXCatalogManager(ctk.CTk):
             self.selected_template_path = dest
             self._show_dat_editor(append_mode=True)
         else:
+            # New fastener: ensure name is not already used anywhere in manifest (case-insensitive)
+            existing_names = {n.lower() for n, _, _ in manifest_entries}
+            if key_name in existing_names:
+                messagebox.showerror(
+                    "Name already exists",
+                    "That fastener name already exists. Use a different name or select "
+                    "the existing fastener from the dropdown to append.",
+                )
+                return
             self._build_template_selection_ui(item_name, section, catalog_name)
 
 
