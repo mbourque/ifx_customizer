@@ -15,7 +15,7 @@ A pre-built Windows executable is available in the `dist` folder:
 dist/ifx_catalog_manager.exe
 ```
 
-Double-click the executable or run it from a terminal. No Python installation needed.
+Double-click the executable or run it from a terminal. No Python installation needed. Bypass the warning.
 
 ---
 
