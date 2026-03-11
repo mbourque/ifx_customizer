@@ -40,8 +40,6 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-## Running the App (from source)
-
 With the virtual environment activated:
 
 ```bash
