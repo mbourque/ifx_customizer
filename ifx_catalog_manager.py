@@ -2,6 +2,7 @@
 IFX Catalog Manager - CustomTkinter application for managing IFX fastener catalogs.
 """
 
+import os
 import re
 import shutil
 import customtkinter as ctk
@@ -665,6 +666,9 @@ class IFXCatalogManager(ctk.CTk):
         if not append_mode:
             unit = "INCH"
 
+        # Remember current .dat so we can open it with the system editor
+        self._current_dat_path = dat_path
+
         self._dat_editor_vars = variables
         self._dat_numeric_vars = numeric_vars
         if append_mode:
@@ -745,12 +749,24 @@ class IFXCatalogManager(ctk.CTk):
                 entry.grid(row=i, column=3, sticky="w", pady=1)
                 self._dat_entries[v] = entry
 
-        btn_frame = ctk.CTkFrame(inner, fg_color="transparent")
-        btn_frame.pack(anchor="e", pady=(4, 0))
-        ctk.CTkButton(btn_frame, text="Create", command=self._create_from_template).pack(
+        # Button row: Edit on the left, Cancel/Create on the right, all aligned horizontally
+        btn_row = ctk.CTkFrame(inner, fg_color="transparent")
+        btn_row.pack(fill="x", pady=(8, 0))
+
+        # Edit button (opens .dat in system text editor)
+        ctk.CTkButton(
+            btn_row,
+            text="Edit",
+            width=120,
+            command=self._open_dat_in_editor,
+        ).pack(side="left")
+
+        right_btns = ctk.CTkFrame(btn_row, fg_color="transparent")
+        right_btns.pack(side="right")
+        ctk.CTkButton(right_btns, text="Create", command=self._create_from_template).pack(
             side="right"
         )
-        ctk.CTkButton(btn_frame, text="Cancel", command=self._cancel_dat_editor).pack(
+        ctk.CTkButton(right_btns, text="Cancel", command=self._cancel_dat_editor).pack(
             side="right", padx=(0, 12)
         )
 
@@ -781,6 +797,21 @@ class IFXCatalogManager(ctk.CTk):
                 cell.configure(border_width=3, border_color=("#1f6aa5", "#3b8ed0"))
             else:
                 cell.configure(border_width=2, border_color=("gray75", "gray35"))
+
+    def _open_dat_in_editor(self):
+        """Open the current .dat file in the system text editor."""
+        dat_path = getattr(self, "_current_dat_path", None)
+        if not isinstance(dat_path, Path):
+            messagebox.showerror("Error", "No .dat file is associated with this editor.")
+            return
+        if not dat_path.exists():
+            messagebox.showerror("Error", f".dat file not found: {dat_path}")
+            return
+        try:
+            # On Windows, startfile opens with the associated application (e.g. Notepad)
+            os.startfile(str(dat_path))
+        except Exception as e:
+            messagebox.showerror("Error", f"Could not open .dat file:\n{e}")
 
     def _create_from_template(self):
         """Copy template .prt and .dat to ifx_fastener_data with user's name."""
