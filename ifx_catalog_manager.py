@@ -653,6 +653,15 @@ class IFXCatalogManager(ctk.CTk):
             template_base = template_path.name
             dat_path = template_path / f"{template_base}.dat"
 
+        # Determine which .dat file (if any) is editable on disk:
+        # - In append mode, this is the fastener's .dat in fastener_data_dir.
+        # - In new fastener mode, only allow editing once the fastener .dat exists.
+        if append_mode:
+            edit_dat_path = dat_path
+        else:
+            edit_dat_path = self.fastener_data_dir / f"{pf['item_name']}.dat"
+        can_edit_dat = edit_dat_path.exists()
+
         variables, unit, numeric_vars = parse_dat_variables(dat_path)
         if not variables:
             if append_mode:
@@ -666,8 +675,8 @@ class IFXCatalogManager(ctk.CTk):
         if not append_mode:
             unit = "INCH"
 
-        # Remember current .dat so we can open it with the system editor
-        self._current_dat_path = dat_path
+        # Remember current editable .dat (if it exists) so we can open it with the system editor
+        self._current_dat_path = edit_dat_path if can_edit_dat else None
 
         self._dat_editor_vars = variables
         self._dat_numeric_vars = numeric_vars
@@ -754,12 +763,15 @@ class IFXCatalogManager(ctk.CTk):
         btn_row.pack(fill="x", pady=(8, 0))
 
         # Edit button (opens .dat in system text editor)
-        ctk.CTkButton(
+        edit_btn = ctk.CTkButton(
             btn_row,
             text="Edit",
             width=120,
             command=self._open_dat_in_editor,
-        ).pack(side="left")
+        )
+        edit_btn.pack(side="left")
+        if not can_edit_dat:
+            edit_btn.configure(state="disabled")
 
         right_btns = ctk.CTkFrame(btn_row, fg_color="transparent")
         right_btns.pack(side="right")
