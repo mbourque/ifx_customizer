@@ -1012,6 +1012,14 @@ class IFXCatalogManager(ctk.CTk):
         if " " in name:
             messagebox.showwarning("Invalid name", "Spaces are not allowed in catalog names.")
             return
+        # Catalog name cannot be the same as a section heading (e.g. "pins" for #pins)
+        section_names_lower = {s.lstrip("#").lower() for s in DEFAULT_SECTIONS if s.startswith("#")}
+        if name.lower() in section_names_lower:
+            messagebox.showerror(
+                "Invalid name",
+                "That name is reserved for a section heading. Please choose a different catalog name.",
+            )
+            return
         if not self.catalog_index_path or not self.catalog_index_path.exists():
             messagebox.showerror("Error", "Catalog index file not found.")
             return
@@ -1060,6 +1068,8 @@ class IFXCatalogManager(ctk.CTk):
                 break
 
         insert_idx = last_item_idx + 1
+        if last_item_idx >= 0 and last_item_idx < len(lines) and lines[last_item_idx] and not lines[last_item_idx].endswith("\n"):
+            lines[last_item_idx] = lines[last_item_idx].rstrip() + "\n"
         while insert_idx < next_heading_idx and insert_idx < len(lines) and not lines[insert_idx].strip():
             del lines[insert_idx]
             next_heading_idx -= 1
@@ -1105,6 +1115,9 @@ class IFXCatalogManager(ctk.CTk):
                 break
         new_entry = f"{item_name}\n\n"
         insert_idx = last_item_idx + 1
+        # Ensure the line we're inserting after ends with newline (avoids "#pins" + "item" -> "#pinsitem")
+        if last_item_idx >= 0 and last_item_idx < len(lines) and lines[last_item_idx] and not lines[last_item_idx].endswith("\n"):
+            lines[last_item_idx] = lines[last_item_idx].rstrip() + "\n"
         while insert_idx < next_heading_idx and insert_idx < len(lines) and not lines[insert_idx].strip():
             del lines[insert_idx]
             next_heading_idx -= 1
@@ -1126,6 +1139,15 @@ class IFXCatalogManager(ctk.CTk):
             return
         if " " in item_name:
             messagebox.showwarning("Invalid name", "Spaces are not allowed in item names.")
+            return
+
+        # Fastener name cannot be the same as a section heading (e.g. "pins" for #pins)
+        section_names_lower = {s.lstrip("#").lower() for s in getattr(self, "sections", []) if s.startswith("#")}
+        if item_name in section_names_lower:
+            messagebox.showerror(
+                "Invalid name",
+                "That name is reserved for a section heading. Please choose a different fastener name.",
+            )
             return
 
         # Fastener name cannot be the same as a catalog name (case-insensitive)
