@@ -205,7 +205,7 @@ A descriptive name such as `"Hex Head Bolt"`.
 The fastener standard such as `"ANSI/ASME"`, `"DIN"`, or `"ISO"`.
 
 **BUW_SIZE**  
-Plain text description of the fastener size, for example `"1/2 13 x 2 Hex Bolt"`.
+Plain text description of the fastener size, for example `"1/2-13 x 2 Hex Head Bolt"`.
 
 ### Creating the Fastener
 
