@@ -2,6 +2,8 @@
 
 A desktop application for managing IFX fastener catalogs. Create new catalogs, add fasteners from templates, and append data rows to existing fastener files.
 
+Compatible with Creo 6 or later. 
+
 ## Installation & Creo Setup
 
 1. **Download** the project and extract it to a separate directory (e.g. `C:\dev\IFX Customizer`).
