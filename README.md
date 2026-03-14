@@ -132,7 +132,7 @@ When **appending** to an existing fastener:
 
 ## Template Requirements
 
-Templates live under `ifx_fastener_templates/{type}/`:
+Templates live under `{install_location}\ifx_fastener_templates/{type}/`:
 
 | Section  | Folder   | Example templates |
 |----------|----------|-------------------|
