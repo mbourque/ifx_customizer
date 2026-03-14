@@ -182,9 +182,9 @@ hexbolt
 
 ## Usage
 
-Run the application and choose to create a new category of fasteners under **#screws** or **#pins**. Give it a meaningful plural name without spaces. Then choose that new name from the **Category** drop down. You can then start creating fastener family libraries under that category.
+Run the application and choose to create a new category of fasteners under **#screws** or **#pins**. Give it a meaningful name without spaces. Then choose that new name from the **Category** drop down. You can then start creating fastener family libraries under that category.
 
-Choose a plural name without spaces and select the type of fastener from the drop down. Options include **#screws**, **#nuts**, **#washers**, **#inserts**, or **#pins**.
+Choose a name without spaces and select the type of fastener from the drop down. Options include **#screws**, **#nuts**, **#washers**, **#inserts**, or **#pins**.
 
 Then select the template for the fastener. Look carefully at the pictures of each fastener to choose the correct one. Some screws have full threads and others have partial threads.
 
