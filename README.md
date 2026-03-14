@@ -182,7 +182,7 @@ hexbolt
 
 ## Usage
 
-Run the application and choose to create a new category of fasteners under **#screws** or **#pins**. Give it a meaningful plural name without spaces. Then choose that new name from the **Category** drop down. You can then start creating fastener libraries under that category.
+Run the application and choose to create a new category of fasteners under **#screws** or **#pins**. Give it a meaningful plural name without spaces. Then choose that new name from the **Category** drop down. You can then start creating fastener family libraries under that category.
 
 Choose a plural name without spaces and select the type of fastener from the drop down. Options include **#screws**, **#nuts**, **#washers**, **#inserts**, or **#pins**.
 
@@ -217,11 +217,7 @@ Each **SYMBOL** must be unique across the entire library. Do not reuse SYMBOL na
 
 You can create many variations of screws with different dimensions.
 
-Washers, nuts, and inserts behave slightly differently. IFX selects the first item in the family that fits the screw.
-
-If you need additional sizes or types you must create a separate family name. For example do not create the same washer diameter with variations of thickness.
-
-Only create different diameters within a fastener family so IFX selects the item that matches the corresponding screw diameter.
+Washers, nuts, and inserts behave slightly differently. IFX selects the first item in the family that fits the screw. If you need additional sizes or types you must create a separate family name. For example do not create the same washer diameter with variations of thickness. Only create different diameters within a fastener family so IFX selects the item that matches the corresponding screw diameter.
 
 ---
 
