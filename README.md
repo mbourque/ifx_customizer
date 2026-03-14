@@ -178,6 +178,50 @@ hexbolt
 #nuts
 ...
 ```
+---
+
+## Usage
+
+Run the application and choose to create a new category of fasteners under **#screws** or **#pins**. Give it a meaningful plural name without spaces. Then choose that new name from the **Category** drop down. You can then start creating fastener libraries under that category.
+
+Choose a plural name without spaces and select the type of fastener from the drop down. Options include **#screws**, **#nuts**, **#washers**, **#inserts**, or **#pins**.
+
+Then select the template for the fastener. Look carefully at the pictures of each fastener to choose the correct one. Some screws have full threads and others have partial threads.
+
+Next choose the units and enter all dimensional values accordingly.
+
+### Field Descriptions
+
+**SYMBOL**  
+A unique Creo part name without spaces. This will be used as the name of the part when it is placed by IFX.
+
+**STRING**  
+The nominal size such as `"1/2"` or `"M5"`. This appears in the drop down when choosing the fastener size in IFX.
+
+**BUW_NAME**  
+A descriptive name such as `"Hex Head Bolt"`.
+
+**BUW_TYPE**  
+The fastener standard such as `"ANSI/ASME"`, `"DIN"`, or `"ISO"`.
+
+**BUW_SIZE**  
+Plain text description of the fastener size, for example `"1/2 13 x 2 Hex Bolt"`.
+
+### Creating the Fastener
+
+After entering all fields click the **Create** button. The fastener will be created from the selected template. You can then create additional fasteners of the same type with different sizes.
+
+### Important Notes
+
+Each **SYMBOL** must be unique across the entire library. Do not reuse SYMBOL names. Choose a unique part name or part number to avoid conflicts.
+
+You can create many variations of screws with different dimensions.
+
+Washers, nuts, and inserts behave slightly differently. IFX selects the first item in the family that fits the screw.
+
+If you need additional sizes or types you must create a separate family name. For example do not create the same washer diameter with variations of thickness.
+
+Only create different diameters within a fastener family so IFX selects the item that matches the corresponding screw diameter.
 
 ---
 
