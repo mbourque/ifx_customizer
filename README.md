@@ -198,7 +198,7 @@ Next choose the units and enter all dimensional values accordingly.
 A unique Creo part name without spaces. This will be used as the name of the part when it is placed by IFX.
 
 **STRING**  
-The nominal size such as `"1/2"` or `"M5"`. This appears in the drop down when choosing the fastener size in IFX.
+The nominal size such as `"1/2-13"` or `"M12x1.75"`. This appears in the drop down when choosing the fastener size in IFX.
 
 **BUW_NAME**  
 A descriptive name such as `"Hex Head Bolt"`.
