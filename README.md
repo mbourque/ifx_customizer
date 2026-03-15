@@ -223,6 +223,10 @@ Washers, nuts, and inserts behave slightly differently. IFX selects the first it
 
 ---
 
+## Importing premade catalogs
+
+You can import pre-made fasteners by using the **Import...** button and selecting a .ifx file found in the ```import``` directory. 
+
 ## License
 
 See `License.txt` if present.
