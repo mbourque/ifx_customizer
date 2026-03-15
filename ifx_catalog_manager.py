@@ -5,6 +5,7 @@ IFX Catalog Manager - CustomTkinter application for managing IFX fastener catalo
 import os
 import re
 import shutil
+import zipfile
 import customtkinter as ctk
 from pathlib import Path
 from tkinter import messagebox, filedialog
@@ -79,6 +80,25 @@ def parse_catalog_index(file_path: Path) -> tuple[list[str], list[tuple[str, str
                 if current_section:
                     item_sections.append((stripped, current_section))
     
+    return display_items, item_sections
+
+
+def parse_catalog_index_content(content: str) -> tuple[list[str], list[tuple[str, str]]]:
+    """Parse ifx_catalogs.txt-style content (e.g. from a string). Returns (display_items, item_sections)."""
+    display_items = []
+    item_sections = []
+    current_section = None
+    for line in content.splitlines():
+        stripped = line.strip()
+        if not stripped:
+            continue
+        if stripped.startswith("#"):
+            current_section = stripped
+            display_items.append(stripped)
+        else:
+            display_items.append(stripped)
+            if current_section:
+                item_sections.append((stripped, current_section))
     return display_items, item_sections
 
 
@@ -330,6 +350,15 @@ class IFXCatalogManager(ctk.CTk):
         ).pack(side="left")
         self.folder_entry.bind("<Return>", lambda e: self._apply_folder_from_entry())
 
+        # Import row (just below IFX Data Folder)
+        self.import_frame = ctk.CTkFrame(self, fg_color="transparent")
+        self.import_frame.pack(fill="x", padx=20, pady=(0, 4))
+        ctk.CTkButton(
+            self.import_frame,
+            text="Import...",
+            command=self._import_ifx,
+        ).pack(side="left")
+
         # Catalog list frame (hidden when on dat editor)
         self.list_frame = ctk.CTkFrame(self, fg_color="transparent")
         self.list_frame.pack(fill="x", padx=20, pady=4)
@@ -413,6 +442,7 @@ class IFXCatalogManager(ctk.CTk):
         self._clear_action_frame()
         # Show folder/catalog UI when on main screens
         self.folder_frame.pack(fill="x", padx=20, pady=(10, 4), before=self.action_frame)
+        self.import_frame.pack(fill="x", padx=20, pady=(0, 4), before=self.action_frame)
         self.list_frame.pack(fill="x", padx=20, pady=4, before=self.action_frame)
         self.geometry("700x550")
         if not sel or sel.startswith("("):
@@ -452,6 +482,108 @@ class IFXCatalogManager(ctk.CTk):
             text="Add new catalog",
             command=lambda: self._add_new_catalog(section),
         ).pack(anchor="w", pady=(15, 0))
+
+    def _import_ifx(self):
+        """Import .ifx (zip): copy catalog .txt from parts/ifx_catalogs/, fastener data from parts/ifx_fastener_data/; merge or build index."""
+        path = filedialog.askopenfilename(
+            title="Import IFX file",
+            filetypes=[("IFX files", "*.ifx"), ("All files", "*.*")],
+            initialdir=str(self.base_folder),
+        )
+        if not path:
+            return
+        path = Path(path)
+        if not path.exists():
+            messagebox.showerror("Error", "Selected file not found.")
+            return
+        try:
+            with zipfile.ZipFile(path, "r") as zf:
+                names = zf.namelist()
+        except zipfile.BadZipFile:
+            messagebox.showerror("Error", "The selected file is not a valid .ifx (zip) file.")
+            return
+        prefix_catalogs = "parts/ifx_catalogs/"
+        prefix_fastener = "parts/ifx_fastener_data/"
+        # Index file in zip is required: parts/ifx_catalogs/ifx_catalogs.txt
+        index_name = "parts/ifx_catalogs/ifx_catalogs.txt"
+        if not any(n.replace("\\", "/") == index_name for n in names):
+            messagebox.showerror("Error", "The .ifx file must contain parts/ifx_catalogs/ifx_catalogs.txt.")
+            return
+        try:
+            with zipfile.ZipFile(path, "r") as zf:
+                index_content = zf.read(index_name).decode("utf-8-sig", errors="replace")
+        except Exception as e:
+            messagebox.showerror("Error", f"Cannot read parts/ifx_catalogs/ifx_catalogs.txt from .ifx: {e}")
+            return
+        self.catalogs_dir.mkdir(parents=True, exist_ok=True)
+        self.fastener_data_dir.mkdir(parents=True, exist_ok=True)
+
+        # 1. Always merge the index file into local ifx_catalogs.txt
+        index_path = self.catalogs_dir / "ifx_catalogs.txt"
+        imp_display, imp_pairs = parse_catalog_index_content(index_content)
+        if index_path.exists():
+            local_content = index_path.read_text(encoding="utf-8-sig", errors="replace")
+            local_display, local_pairs = parse_catalog_index_content(local_content)
+            local_set = set((item, sec) for item, sec in local_pairs)
+            to_add = [(item, sec) for item, sec in imp_pairs if (item, sec) not in local_set]
+            lines = index_path.read_text(encoding="utf-8-sig", errors="replace").splitlines()
+            for catalog, section in to_add:
+                for i, line in enumerate(lines):
+                    if line.strip() == section:
+                        j = i + 1
+                        while j < len(lines) and not lines[j].strip().startswith("#"):
+                            j += 1
+                        lines.insert(j, catalog)
+                        break
+            index_path.write_text("\n".join(lines) + ("\n" if lines else ""), encoding="utf-8")
+        else:
+            index_path.write_text(index_content, encoding="utf-8")
+
+        # 2. Copy tasks: catalog .txt files and fastener_data files
+        try:
+            with zipfile.ZipFile(path, "r") as zf:
+                for name in names:
+                    norm = name.replace("\\", "/")
+                    if norm.startswith(prefix_catalogs) and norm != prefix_catalogs and norm.endswith(".txt"):
+                        if norm == index_name:
+                            continue  # index was merged above; do not overwrite
+                        try:
+                            data = zf.read(name)
+                            (self.catalogs_dir / Path(norm).name).write_bytes(data)
+                        except Exception as e:
+                            messagebox.showwarning("Import warning", f"Could not copy {Path(norm).name}: {e}")
+                    elif norm.startswith(prefix_fastener):
+                        rel = norm[len(prefix_fastener):].lstrip("/")
+                        if not rel or rel.endswith("/"):
+                            continue
+                        try:
+                            data = zf.read(name)
+                            out_path = self.fastener_data_dir / rel
+                            out_path.parent.mkdir(parents=True, exist_ok=True)
+                            out_path.write_bytes(data)
+                        except Exception as e:
+                            messagebox.showwarning("Import warning", f"Could not copy {name}: {e}")
+        except Exception as e:
+            messagebox.showerror("Error", f"Could not read .ifx file: {e}")
+            return
+
+        # 3. Add imported fastener names to manifest so we don't allow duplicate names later
+        manifest_path = get_manifest_path(self.catalogs_dir)
+        existing = set(load_manifest(manifest_path))
+        imported_catalogs = {cat for cat, _sec in imp_pairs}
+        for catalog_name in imported_catalogs:
+            catalog_path = get_catalog_file_path(self.catalogs_dir, catalog_name)
+            if not catalog_path.exists():
+                continue
+            _disp, item_sections = parse_catalog_index(catalog_path)
+            for item_name, section in item_sections:
+                key = (item_name, catalog_name, section)
+                if key not in existing:
+                    append_to_manifest(manifest_path, item_name, catalog_name, section)
+                    existing.add(key)
+
+        self._load_catalog_index()
+        messagebox.showinfo("Import complete", "IFX file imported. Catalog and fastener data files copied.")
 
     def _build_add_to_catalog_ui(self, catalog_name: str):
         """Build UI for adding an item to an existing catalog."""
@@ -692,6 +824,7 @@ class IFXCatalogManager(ctk.CTk):
 
         # Hide folder/catalog, expand window for values form only
         self.folder_frame.pack_forget()
+        self.import_frame.pack_forget()
         self.list_frame.pack_forget()
         self.geometry("700x720")
 
@@ -791,6 +924,7 @@ class IFXCatalogManager(ctk.CTk):
                 except Exception:
                     pass
         self.folder_frame.pack(fill="x", padx=20, pady=(10, 4), before=self.action_frame)
+        self.import_frame.pack(fill="x", padx=20, pady=(0, 4), before=self.action_frame)
         self.list_frame.pack(fill="x", padx=20, pady=4, before=self.action_frame)
         self.geometry("700x550")
         self._on_selection_changed(None)
