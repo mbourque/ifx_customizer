@@ -97,13 +97,13 @@ Once the folders are complete:
 1. Zip the `parts` folder.
 
    ```text
-   parts.zip
+   mcmaster-carr.zip
    ```
 
 2. Rename the extension from `.zip` to `.ifx`.
 
    ```text
-   metric_socket_bolts.ifx
+   mcmaster-carr.ifx
    ```
 
 The `.ifx` file is simply a packaged archive that the catalog manager can import.
