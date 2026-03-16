@@ -227,7 +227,7 @@ Washers, nuts, and inserts behave slightly differently. IFX selects the first it
 
 You can import a premade catalog of fasteners by using the **Import...** button and selecting a `.ifx` file found in the `import` directory.
 
-If you want to **author your own importable catalogs**, read the detailed guide in [`import/README.md`](https://github.com/mbourque/ifx_customizer/blob/master/import/README.md).
+If you want to **author your own importable catalogs**, read the [`detailed guide`](https://github.com/mbourque/ifx_customizer/blob/master/import/README.md).
 
 ## License
 
