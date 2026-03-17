@@ -322,6 +322,7 @@ class IFXCatalogManager(ctk.CTk):
         ctk.set_default_color_theme("blue")
 
         # Data paths: IFX data folder is the single source of truth (no auto-discovery)
+        self.app_root = Path(__file__).resolve().parent
         self.base_folder = Path(r"C:\dev\IFX Customizer\ifx")
         self._update_paths_from_base_folder()
         self.catalog_index_path = None
@@ -386,11 +387,15 @@ class IFXCatalogManager(ctk.CTk):
         self.action_frame.pack(fill="both", expand=True, padx=20, pady=8)
 
     def _update_paths_from_base_folder(self):
-        """Set catalogs_dir, fastener_data_dir, templates_dir from base_folder (no auto-discovery)."""
+        """Set IFX paths from base_folder and keep app template paths separate."""
         b = self.base_folder
         self.catalogs_dir = b / "parts" / "ifx_catalogs"
         self.fastener_data_dir = b / "parts" / "ifx_fastener_data"
-        self.templates_dir = b.parent / "ifx_fastener_templates"
+        # Runtime template browsing/detail GIFs use the app's own template library.
+        self.templates_dir = self.app_root / "ifx_fastener_templates"
+        # Imported IFX assets are merged into the IFX data folder under parts.
+        self.ifx_templates_dir = b / "parts" / "ifx_fastener_templates"
+        self.ifx_icons_dir = b / "parts" / "ifx_fastener_icons"
 
     def _apply_folder_from_entry(self):
         """Read IFX Data Folder from the entry and update all paths, then reload catalog index."""
@@ -504,6 +509,8 @@ class IFXCatalogManager(ctk.CTk):
             return
         prefix_catalogs = "parts/ifx_catalogs/"
         prefix_fastener = "parts/ifx_fastener_data/"
+        prefix_templates = "parts/ifx_fastener_templates/"
+        prefix_icons = "parts/ifx_fastener_icons/"
         # Index file in zip is required: parts/ifx_catalogs/ifx_catalogs.txt
         index_name = "parts/ifx_catalogs/ifx_catalogs.txt"
         if not any(n.replace("\\", "/") == index_name for n in names):
@@ -517,6 +524,8 @@ class IFXCatalogManager(ctk.CTk):
             return
         self.catalogs_dir.mkdir(parents=True, exist_ok=True)
         self.fastener_data_dir.mkdir(parents=True, exist_ok=True)
+        self.ifx_templates_dir.mkdir(parents=True, exist_ok=True)
+        self.ifx_icons_dir.mkdir(parents=True, exist_ok=True)
 
         # 1. Always merge the index file into local ifx_catalogs.txt
         index_path = self.catalogs_dir / "ifx_catalogs.txt"
@@ -539,7 +548,7 @@ class IFXCatalogManager(ctk.CTk):
         else:
             index_path.write_text(index_content, encoding="utf-8")
 
-        # 2. Copy tasks: catalog .txt files and fastener_data files
+        # 2. Copy tasks: catalog .txt, fastener_data, templates, and icons
         try:
             with zipfile.ZipFile(path, "r") as zf:
                 for name in names:
@@ -563,6 +572,32 @@ class IFXCatalogManager(ctk.CTk):
                             out_path.write_bytes(data)
                         except Exception as e:
                             messagebox.showwarning("Import warning", f"Could not copy {name}: {e}")
+                    elif norm.startswith(prefix_templates):
+                        rel = norm[len(prefix_templates):].lstrip("/")
+                        if not rel or rel.endswith("/"):
+                            continue
+                        try:
+                            out_path = self.ifx_templates_dir / rel
+                            if out_path.exists():
+                                continue
+                            data = zf.read(name)
+                            out_path.parent.mkdir(parents=True, exist_ok=True)
+                            out_path.write_bytes(data)
+                        except Exception as e:
+                            messagebox.showwarning("Import warning", f"Could not copy template {name}: {e}")
+                    elif norm.startswith(prefix_icons):
+                        rel = norm[len(prefix_icons):].lstrip("/")
+                        if not rel or rel.endswith("/"):
+                            continue
+                        try:
+                            out_path = self.ifx_icons_dir / rel
+                            if out_path.exists():
+                                continue
+                            data = zf.read(name)
+                            out_path.parent.mkdir(parents=True, exist_ok=True)
+                            out_path.write_bytes(data)
+                        except Exception as e:
+                            messagebox.showwarning("Import warning", f"Could not copy icon {name}: {e}")
         except Exception as e:
             messagebox.showerror("Error", f"Could not read .ifx file: {e}")
             return
@@ -583,7 +618,10 @@ class IFXCatalogManager(ctk.CTk):
                     existing.add(key)
 
         self._load_catalog_index()
-        messagebox.showinfo("Import complete", "IFX file imported. Catalog and fastener data files copied.")
+        messagebox.showinfo(
+            "Import complete",
+            "IFX file imported. Catalog, fastener data, templates, and icons were merged.",
+        )
 
     def _build_add_to_catalog_ui(self, catalog_name: str):
         """Build UI for adding an item to an existing catalog."""
