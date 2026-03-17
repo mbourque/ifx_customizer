@@ -8,7 +8,9 @@ Follow the steps below to create a compatible catalog package.
 
 ## 1. Create the Required Folder Structure
 
-Create a folder named `parts` and inside it create the following two directories:
+Create a folder named `parts`.
+
+At minimum, it must contain:
 
 ```text
 parts/
@@ -16,7 +18,15 @@ parts/
   ifx_fastener_data/
 ```
 
-These match the folders used by IFX for catalog definitions and fastener data.
+You can also include these optional folders when your package adds new templates or icons:
+
+```text
+parts/
+  ifx_fastener_templates/
+  ifx_fastener_icons/
+```
+
+These match the folders used by IFX for catalog definitions, fastener data, templates, and icons.
 
 ---
 
@@ -28,7 +38,7 @@ Inside `parts/ifx_catalogs` place a file named:
 ifx_catalogs.txt
 ```
 
-This file lists the catalog entries that should be merged into the user's existing IFX catalog index during import.
+This file is **required**. It lists the catalog entries that should be merged into the user's existing IFX catalog index during import.
 
 If the catalog references a new entry that does not already exist in the user's environment, include the corresponding `.txt` catalog file in this same folder.
 
@@ -46,6 +56,11 @@ Each referenced catalog must also have its corresponding catalog definition file
 parts/ifx_catalogs/mcmaster_screws.txt
 parts/ifx_catalogs/metric_socket_head_cap_screws.txt
 ```
+
+During import:
+
+- `parts/ifx_catalogs/ifx_catalogs.txt` is always **merged** into the user's local `ifx_catalogs.txt`
+- other `.txt` files in `parts/ifx_catalogs/` are copied into the user's catalog folder
 
 ---
 
@@ -69,9 +84,42 @@ hex_nut.dat
 dowel_pin.dat
 ```
 
+During import, files under `parts/ifx_fastener_data/` are copied into the user's IFX fastener data folder.
+
 ---
 
-## 4. Create the Creo Part Files
+## 4. Optional: Add Template and Icon Files
+
+If your package includes new templates or icons, place them under:
+
+```text
+parts/ifx_fastener_templates/
+parts/ifx_fastener_icons/
+```
+
+Preserve the same relative folder structure IFX uses.
+
+**Example:**
+
+```text
+parts/ifx_fastener_templates/screws/screw_19/screw_19.dat
+parts/ifx_fastener_templates/screws/screw_19/screw_19.prt
+parts/ifx_fastener_templates/screws/screw_19/screw_19_inch.prt
+parts/ifx_fastener_templates/screws/screw_19/screw_19.gif
+parts/ifx_fastener_templates/screws/screw_19/screw_19_detail.gif
+
+parts/ifx_fastener_icons/screws/screw_19_icon.gif
+```
+
+During import:
+
+- missing directories are created automatically
+- files are copied into the matching `ifx/parts/...` folder
+- if a template or icon file already exists locally, it is skipped and not overwritten
+
+---
+
+## 5. Create the Creo Part Files
 
 Using Creo Parametric 6 and this tool:
 
@@ -90,14 +138,30 @@ Keep naming consistent so IFX can resolve the part correctly during placement.
 
 ---
 
-## 5. Package the Library
+## 6. Package the Library
 
 Once the folders are complete:
 
-1. Zip the `parts` folder.
+1. Zip the `parts` folder **so that `parts` is the top-level folder inside the archive**.
 
    ```text
    mcmaster-carr.zip
+   ```
+
+   The archive should look like this inside:
+
+   ```text
+   parts/
+     ifx_catalogs/
+     ifx_fastener_data/
+     ifx_fastener_templates/   # optional
+     ifx_fastener_icons/       # optional
+   ```
+
+   Do **not** wrap `parts` inside another folder such as:
+
+   ```text
+   mcmaster_carr/parts/...
    ```
 
 2. Rename the extension from `.zip` to `.ifx`.
@@ -110,7 +174,7 @@ The `.ifx` file is simply a packaged archive that the catalog manager can import
 
 ---
 
-## 6. Test the Catalog
+## 7. Test the Catalog
 
 Before submitting:
 
@@ -130,10 +194,11 @@ Before submitting:
 - **sizes** appear correctly  
 - **Creo parts** load properly  
 - **parameters** populate correctly  
+- imported templates and icons appear in the correct IFX folders if they were included
 
 ---
 
-## 7. Submit Your Catalog
+## 8. Submit Your Catalog
 
 Once tested, submit the `.ifx` package to this project or send it directly.
 
