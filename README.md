@@ -1,6 +1,6 @@
 # IFX Catalog Manager
 
-A desktop application for managing IFX fastener catalogs. Create new catalogs, add fasteners from templates, and append data rows to existing fastener files.
+A desktop application for managing IFX fastener catalogs. Create new catalogs, add fasteners from templates, and append data rows to existing fastener files. Import premade libraries. 
 
 Compatible with Creo 6 or later. 
 
