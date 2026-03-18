@@ -9,6 +9,12 @@ del /q "%BASE%\*.prt.*" 2>nul
 rem 2) Delete trail.txt.* in this folder
 del /q "%BASE%\trail.txt.*" 2>nul
 
+rem 3) Delete *.log in this folder
+del /q "%BASE%\*.log" 2>nul
+
+rem 4) Delete std.out in this folder
+del /q "%BASE%\std.out" 2>nul
+
 rem 3) Delete all files in ifx\parts\ifx_fastener_data
 if exist "%BASE%\ifx\parts\ifx_fastener_data" (
     del /q "%BASE%\ifx\parts\ifx_fastener_data\*.*" 2>nul
