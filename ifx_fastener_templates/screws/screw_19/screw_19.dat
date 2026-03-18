@@ -1,0 +1,14 @@
+!--------------------------------------------------------										
+!	Sechskantschraube mit Gewinde bis zum Kopf									
+!	Hexagon head screw, fully threaded									
+!--------------------------------------------------------										
+										
+SCREWTYPE	19									
+UNIT	MM									
+SURFACE	125									
+AXIS	88									
+CBSCR	DIN974-2 R1									
+INFO	<YOUR SCREW19>									
+										
+SYMBOL	STRING	DN	LG	L	B	D	S	K	DG	P
+INSTANCE	STRING	DN	LG	L	B	D	S	K	DG	P
