@@ -72,8 +72,6 @@ Place all fastener definition files in:
 parts/ifx_fastener_data/
 ```
 
-Each fastener family requires its `.dat` file containing the INSTANCE table and parameter definitions used by IFX.
-
 **Typical examples:**
 
 ```text
@@ -83,6 +81,8 @@ flat_washer.dat
 hex_nut.dat
 dowel_pin.dat
 ```
+
+Note: Each fastener family requires its `.dat` file containing the INSTANCE table and parameter definitions used by IFX. If you are using a part you created yourself the `.dat` file will need to have corresponding IDs for the fastener SURFACE and DATUM AXIS. You can use the config option `show_selected_item_id yes` to show them in Creo.
 
 During import, files under `parts/ifx_fastener_data/` are copied into the user's IFX fastener data folder.
 
