@@ -140,7 +140,7 @@ parts/ifx_fastener_data/HEX_BOLT.prt
 parts/ifx_fastener_data/HEX_BOLT.dat
 ```
 
-Keep naming consistent so IFX can resolve the part correctly during placement.
+Keep naming consistent so IFX can resolve the part correctly during placement. Remove any version numbers from part filenames (e.g. bolt.prt.5)
 
 ---
 
