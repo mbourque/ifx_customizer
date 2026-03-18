@@ -48,6 +48,12 @@ If the catalog references a new entry that does not already exist in the user's 
 #screws
 mcmaster_screws
 metric_socket_head_cap_screws
+
+#nuts
+
+#washers
+
+#inserts
 ```
 
 Each referenced catalog must also have its corresponding catalog definition file present in `parts/ifx_catalogs`:
