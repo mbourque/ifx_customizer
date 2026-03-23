@@ -177,14 +177,16 @@ McMaster_Carr
 
 ```
 #screws
-mynut
-hexbolt
+hex_bolt
 
 #nuts
+hex_nut
 
 #washers
+flat_washer
 
 #inserts
+keensert
 ```
 ---
 
