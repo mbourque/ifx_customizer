@@ -8,7 +8,7 @@ Compatible with Creo 6 or later.
 
 1. **Download** the project and extract it to a separate directory (e.g. `C:\dev\IFX Customizer`).
 2. **Copy** the exisitng ifx folder from your Creo installation `{creo_location}\Common Files\ifx` to `{install_location}\ifx`.
-3. **Configure Creo IFX** to point to the IFX parts folder: `{install_location}\ifx\parts`. This is where Creo reads catalogs and fastener data from. You can find it by opening an assembly and going to **Tools > Intelligent Fastner > Options > PATH_ABS_LIBRARY**
+3. **Configure Creo IFX** to point to the IFX parts folder: `{install_location}\ifx\parts`. This is where Creo reads catalogs and fastener data from. You can find it by opening an assembly and going to **Tools > Intelligent Fastener > Options > PATH_ABS_LIBRARY**
 
 ## Quick Start (No Python Required)
 
