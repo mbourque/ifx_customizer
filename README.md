@@ -166,8 +166,11 @@ The `.dat` file must have:
 #screws
 McMaster_Carr   
 
+#nuts
+
 #washers
-...
+
+#inserts
 ```
 
 **Catalog** (e.g. `McMaster_Carr.txt`):
@@ -178,7 +181,10 @@ mynut
 hexbolt
 
 #nuts
-...
+
+#washers
+
+#inserts
 ```
 ---
 
