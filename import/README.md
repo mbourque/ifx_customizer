@@ -65,8 +65,6 @@ parts/ifx_catalogs/metric_socket_head_cap_screws.txt
 These files should be in the following format:
 
 ```text
-
-
 #screws
 bolt_hex
 socket_head_cap_screw
