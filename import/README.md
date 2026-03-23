@@ -62,6 +62,21 @@ Each referenced catalog must also have its corresponding catalog definition file
 parts/ifx_catalogs/mcmaster_screws.txt
 parts/ifx_catalogs/metric_socket_head_cap_screws.txt
 ```
+These files should be in the following format:
+
+```text
+#screws
+hex5
+socket6
+
+#nuts
+nut5
+
+#washers
+washer5
+
+#inserts
+```
 
 During import:
 
