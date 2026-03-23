@@ -65,15 +65,17 @@ parts/ifx_catalogs/metric_socket_head_cap_screws.txt
 These files should be in the following format:
 
 ```text
+
+
 #screws
-hex5
-socket6
+bolt_hex
+socket_head_cap_screw
 
 #nuts
-nut5
+hex_nut
 
 #washers
-washer5
+flat_washer
 
 #inserts
 ```
