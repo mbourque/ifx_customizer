@@ -166,11 +166,7 @@ The `.dat` file must have:
 #screws
 McMaster_Carr   
 
-#nuts
-
-#washers
-
-#inserts
+#pins
 ```
 
 **Catalog** (e.g. `McMaster_Carr.txt`):
