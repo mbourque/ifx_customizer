@@ -46,21 +46,15 @@ If the catalog references a new entry that does not already exist in the user's 
 
 ```text
 #screws
-mcmaster_screws
-metric_socket_head_cap_screws
+mcmaster_carr
 
-#nuts
-
-#washers
-
-#inserts
+#pins
 ```
 
 Each referenced catalog must also have its corresponding catalog definition file present in `parts/ifx_catalogs`:
 
 ```text
-parts/ifx_catalogs/mcmaster_screws.txt
-parts/ifx_catalogs/metric_socket_head_cap_screws.txt
+parts/ifx_catalogs/mcmaster_carr.txt
 ```
 These files should be in the following format:
 
