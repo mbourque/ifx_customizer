@@ -48,33 +48,6 @@ With the virtual environment activated:
 python ifx_catalog_manager.py
 ```
 
-## Expected Folder Structure
-
-Point the app at your IFX data root folder. It looks for:
-
-```
-YourIFXFolder/
-├── ifx/parts/
-│   ├── ifx_catalogs/           # Catalog index and catalog files
-│   │   ├── ifx_catalogs.txt
-│   │   ├── McMaster_Carr.txt   # Example catalog
-│   │   └── ...
-│   └── ifx_fastener_data/      # Output: created fastener .prt and .dat files
-│       ├── mynut.prt
-│       ├── mynut.dat
-│       └── ...
-├── ifx_fastener_templates/     # Template sources (screws, nuts, washers, etc.)
-│   ├── screws/
-│   │   ├── screw_01/
-│   │   ├── screw_81/
-│   │   └── ...
-│   ├── nuts/
-│   ├── washers/
-│   ├── inserts/
-│   └── pins/
-```
----
-
 ## How to Use
 
 ### 1. Set the IFX Data Folder
@@ -113,78 +86,9 @@ Creates `{name}.txt` and adds it to the catalog index.
 - **Units:** MM or INCH (disabled in append mode)
 - **SYMBOL, STRING, DN, LG, …:** Fill according to the template
 - **INFO:** Auto-set to the fastener name (hidden field)
-- A **dimension legend** (`*_detail.gif`) is shown when available
+- A **dimension legend** is shown when available
 - **Validation:** Numeric fields must use decimals or whole numbers. SYMBOL cannot match the item name
 - **Cancel:** Returns to the previous screen without saving
-
-### 5. What Gets Created
-
-When creating a **new** fastener:
-
-- Catalog `.txt` is updated with the item name
-- `{item_name}.prt` is copied (MM → `template.prt`, INCH → `template_inch.prt` if it exists)
-- `{item_name}.dat` is created with header and one data row
-
-When **appending** to an existing fastener:
-
-- Only the `.dat` file is updated (new row appended)
-- No catalog change, no `.prt` copy
-
----
-
-## Template Requirements
-
-Templates live under `{install_location}\ifx_fastener_templates\{type}\`:
-
-| Section  | Folder   | Example templates |
-|----------|----------|-------------------|
-| #screws  | screws   | screw_01, screw_81 |
-| #washers | washers  | washer_01        |
-| #nuts    | nuts     | nut_01, nut_51   |
-| #inserts | inserts  | insert_01        |
-| #pins    | pins     | pin_01           |
-
-Each template folder must:
-
-1. **Match names:** Folder name must match the `.dat` filename (e.g. `screw_61/screw_61.dat`)
-2. **Contain:** `{name}.dat` and `{name}.prt` (or `{name}_inch.prt` for inch)
-3. `{name}_detail.gif` for the dimension legend on the Enter values screen
-
-The `.dat` file must have:
-
-- A `SYMBOL` row with variable names (tab-separated)
-- An `INSTANCE` row for types (used for numeric validation)
-- A `UNIT` line (MM or INCH)
-
----
-
-## Catalog File Format
-
-**Index** (`ifx_catalogs.txt`):
-
-```
-#screws
-McMaster_Carr   
-
-#pins
-```
-
-**Catalog** (e.g. `McMaster_Carr.txt`):
-
-```
-#screws
-hex_bolt
-
-#nuts
-hex_nut
-
-#washers
-flat_washer
-
-#inserts
-keensert
-```
----
 
 ## Usage
 
