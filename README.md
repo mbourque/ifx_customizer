@@ -1,4 +1,4 @@
-# Creo IFX Catalog Manager
+# Creo IFX Customizer
 
 A desktop application for managing IFX fastener catalogs. Create new catalogs, add fasteners from templates, and append data rows to existing fastener files. You can also import premade fastener catalogs. 
 
