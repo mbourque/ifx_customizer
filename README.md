@@ -46,7 +46,6 @@ With the virtual environment activated:
 ```bash
 python ifx_catalog_manager.py
 ```
-To compile: ```pyinstaller --noconfirm --onefile --windowed --add-data "ifx_fastener_templates;." ifx_catalog_manager.py```
 
 ## How to Use
 
