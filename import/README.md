@@ -225,3 +225,9 @@ Helpful information to include:
 - supplier reference if included (Fastenal, McMaster-Carr, etc.)  
 
 Well-structured contributions help build a reusable fastener ecosystem that works consistently inside Creo assemblies and bills of materials.
+
+---
+
+## Learn More
+
+Visit the [`PTC Help Center`](https://support.ptc.com/help/creo/creo_pma/r7.0/usascii/index.html#page/assembly/intelligent_fastener/About_Working_with_Intelligent_Fastener.html) for information on using and customizing IFX.
