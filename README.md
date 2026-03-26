@@ -132,11 +132,9 @@ Washers, nuts, and inserts behave slightly differently. IFX selects the first it
 
 **Create** a text file named `param_relations.txt` in your `ifx/parts/ifx_fastener_data` folder to create your own parameters using the following:
 
-NAME = BUW_NAME
-
-TYPE = BUW_TYPE
-
-SIZE = BUW_SIZE
+NAME = BUW_NAME  
+TYPE = BUW_TYPE  
+SIZE = BUW_SIZE  
 
 or
 
