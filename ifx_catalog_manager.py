@@ -6,6 +6,7 @@ import os
 import re
 import shutil
 import zipfile
+import sys
 import customtkinter as ctk
 from pathlib import Path
 from tkinter import messagebox, filedialog
@@ -19,6 +20,24 @@ CATALOG_INDEX_FILES = ["ifx_catalogs.txt"]
 
 MANIFEST_FILENAME = "ifx_customizer_created.txt"
 SYMBOLS_FILENAME = "ifx_customizer_symbols.txt"
+
+def get_resource_root() -> Path:
+    """
+    Return the directory that contains bundled static resources.
+
+    - Normal python execution: the directory of this .py file
+    - PyInstaller onefile/frozen execution: prefer sys._MEIPASS if it contains
+      the expected templates directory; otherwise fall back to the directory
+      of the executable (where you may place templates alongside the EXE).
+    """
+    if getattr(sys, "frozen", False):
+        meipass = Path(getattr(sys, "_MEIPASS", "")) if hasattr(sys, "_MEIPASS") else None
+        if meipass and (meipass / "ifx_fastener_templates").exists():
+            return meipass
+        exe_dir = Path(sys.executable).resolve().parent
+        if (exe_dir / "ifx_fastener_templates").exists():
+            return exe_dir
+    return Path(__file__).resolve().parent
 
 # INSTANCE row types that indicate text (not numeric)
 TEXT_TYPES = {"STRING", "name", "type", "size"}
@@ -322,7 +341,7 @@ class IFXCatalogManager(ctk.CTk):
         ctk.set_default_color_theme("blue")
 
         # Data paths: IFX data folder is the single source of truth (no auto-discovery)
-        self.app_root = Path(__file__).resolve().parent
+        self.app_root = get_resource_root()
         self.base_folder = Path(r"C:\dev\IFX Customizer\ifx")
         self._update_paths_from_base_folder()
         self.catalog_index_path = None
@@ -391,8 +410,11 @@ class IFXCatalogManager(ctk.CTk):
         b = self.base_folder
         self.catalogs_dir = b / "parts" / "ifx_catalogs"
         self.fastener_data_dir = b / "parts" / "ifx_fastener_data"
-        # Runtime template browsing/detail GIFs use the app's own template library.
+        # Templates/icons for normal template browsing should come from where the app runs
+        # (source folder or bundled resources near the EXE).
         self.templates_dir = self.app_root / "ifx_fastener_templates"
+        self.icons_dir = self.app_root / "ifx_fastener_icons"
+
         # Imported IFX assets are merged into the IFX data folder under parts.
         self.ifx_templates_dir = b / "parts" / "ifx_fastener_templates"
         self.ifx_icons_dir = b / "parts" / "ifx_fastener_icons"

@@ -17,8 +17,7 @@ A pre-built Windows executable is available in the `dist` folder:
 ```
 dist/ifx_catalog_manager.exe
 ```
-
-Double-click the executable or run it from a terminal. No Python installation needed. Bypass the warning.
+Important: **Move** the executable out of the dist folder and into the root folder of the installation (e.g. `C:\dev\IFX Customizer`). Double-click the executable or run it from a terminal. No Python installation needed. Bypass the warning.
 
 ---
 
@@ -47,6 +46,7 @@ With the virtual environment activated:
 ```bash
 python ifx_catalog_manager.py
 ```
+To compile: ```pyinstaller --noconfirm --onefile --windowed --add-data "ifx_fastener_templates;." ifx_catalog_manager.py```
 
 ## How to Use
 
@@ -128,6 +128,18 @@ Each **SYMBOL** must be unique across the entire library. Do not reuse SYMBOL na
 You can create many variations of screws with different dimensions.
 
 Washers, nuts, and inserts behave slightly differently. IFX selects the first item in the family that fits the screw. If you need additional sizes or types you must create a separate family name. For example do not create the same washer diameter with variations of thickness. Only create different diameters within a fastener family so IFX selects the item that matches the corresponding screw diameter.
+
+### (Optional) Creating Creo Parameters for Fasteners
+
+**Create** a text file named `param_relations.txt` in your `ifx/parts/ifx_fastener_data` folder to create your own parameters using the following:
+
+NAME = BUW_NAME
+TYPE = BUW_TYPE
+SIZE = BUW_SIZE
+
+or
+
+DESCRIPTION = BUW_NAME + " " + BUW_SIZE + " " + BUW_TYPE
 
 ---
 
