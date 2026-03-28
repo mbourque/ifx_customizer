@@ -17,7 +17,7 @@ A pre-built Windows executable is available in the `dist` folder:
 ```
 dist/ifx_catalog_manager.exe
 ```
-Important: **Move** the executable out of the dist folder and into the root folder of the installation (e.g. `C:\dev\IFX Customizer`). Double-click the executable or run it from a terminal. No Python installation needed. Bypass the warning by clicking More info and run anyway.
+Important: **Move** the executable out of the dist folder and into the root folder of the installation (e.g. `C:\dev\IFX Customizer`). Double-click the executable or run it from a terminal. No Python installation needed. Bypass the warning by clicking More info and Run anyway.
 
 ---
 
