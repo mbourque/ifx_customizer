@@ -140,7 +140,6 @@ or
 
 DESCRIPTION = BUW_NAME + " " + BUW_SIZE + " " + BUW_TYPE
 
-Note: For these to appear in Widchill you'll need to create and edit each part parameters and designate them. 
 ---
 
 ## Importing premade catalogs
