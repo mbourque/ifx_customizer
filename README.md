@@ -140,6 +140,8 @@ or
 
 DESCRIPTION = BUW_NAME + " " + BUW_SIZE + " " + BUW_TYPE
 
+**Note:** To have these value appear in Windchill you'll need to edit the coresponding ```.prt``` files to create and designate the parameters.
+
 ---
 
 ## Importing premade catalogs
