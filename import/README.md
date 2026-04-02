@@ -230,4 +230,4 @@ Well-structured contributions help build a reusable fastener ecosystem that work
 
 ## Learn More
 
-Visit the [`PTC Help Center`](https://support.ptc.com/help/creo/creo_pma/r7.0/usascii/index.html#page/assembly/intelligent_fastener/About_Working_with_Intelligent_Fastener.html) for information on using and customizing IFX.
+Visit the [PTC Help Center](<https://support.ptc.com/help/creo/creo_pma/r7.0/usascii/index.html#page/assembly/intelligent_fastener/About_Working_with_Intelligent_Fastener.html>) for information on using and customizing IFX.
